@@ -429,20 +429,97 @@
     type: 'line',
     data: {
       labels: [],
-      datasets: [{
-        label: 'Crisis Probability',
-        data: [],
-        borderColor: 'rgb(75, 192, 192)',
-        tension: 0.1
-      }]
+      datasets: [
+        {
+          label: 'GSR',
+          data: [],
+          borderColor: 'rgb(255, 99, 132)',
+          yAxisID: 'y',
+          tension: 0.1
+        },
+        {
+          label: 'Temperature',
+          data: [],
+          borderColor: 'rgb(255, 159, 64)',
+          yAxisID: 'y1',
+          tension: 0.1
+        },
+        {
+          label: 'SpO2',
+          data: [],
+          borderColor: 'rgb(75, 192, 192)',
+          yAxisID: 'y2',
+          tension: 0.1
+        },
+        {
+          label: 'Crisis Probability',
+          data: [],
+          borderColor: 'rgb(153, 102, 255)',
+          yAxisID: 'y3',
+          tension: 0.1
+        }
+      ]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
       scales: {
         y: {
-          beginAtZero: true,
-          max: 100
+          type: 'linear',
+          display: true,
+          position: 'left',
+          title: {
+            display: true,
+            text: 'GSR (µS)'
+          },
+          min: 0,
+          max: 5
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          title: {
+            display: true,
+            text: 'Temperature (°C)'
+          },
+          min: 35,
+          max: 39,
+          grid: {
+            drawOnChartArea: false
+          }
+        },
+        y2: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          title: {
+            display: true,
+            text: 'SpO2 (%)'
+          },
+          min: 85,
+          max: 100,
+          grid: {
+            drawOnChartArea: false
+          }
+        },
+        y3: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          title: {
+            display: true,
+            text: 'Crisis Probability'
+          },
+          min: 0,
+          max: 1,
+          grid: {
+            drawOnChartArea: false
+          }
         }
       }
     }
@@ -549,12 +626,18 @@
         // Update history chart
         const now = new Date();
         const time = `${now.getHours()}:${now.getMinutes()}`;
-        historyChart.data.labels.push(time);
-        historyChart.data.datasets[0].data.push(result.crisis_probability * 100);
         
-        if (historyChart.data.labels.length > 10) {
+        // Add new data point
+        historyChart.data.labels.push(time);
+        historyChart.data.datasets[0].data.push(data.gsr);
+        historyChart.data.datasets[1].data.push(data.temperature);
+        historyChart.data.datasets[2].data.push(data.spo2);
+        historyChart.data.datasets[3].data.push(result.crisis_probability);
+        
+        // Keep only the most recent 20 points
+        if (historyChart.data.labels.length > 20) {
           historyChart.data.labels.shift();
-          historyChart.data.datasets[0].data.shift();
+          historyChart.data.datasets.forEach(dataset => dataset.data.shift());
         }
         
         historyChart.update();
