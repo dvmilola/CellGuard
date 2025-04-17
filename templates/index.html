@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CellGuard - Sickle Cell Management</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <nav>
+    <div class="container nav-container">
+      <a href="/" class="logo">
+        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
+        CellGuard
+      </a>
+      
+      <div class="nav-links">
+        <a href="#" class="nav-link active" data-page="home-page">Home</a>
+        <a href="#" class="nav-link" data-page="predictions-page">Crisis Prediction</a>
+        <a href="#" class="nav-link" data-page="medications-page">Medication</a>
+        <a href="#" class="nav-link" data-page="tracker-page">Symptom Tracker</a>
+        <a href="#" class="nav-link" data-page="library-page">Knowledge Library</a>
+      </div>
+      
+      <div class="auth-buttons">
+        <button class="btn btn-outline">Log In</button>
+        <button class="btn btn-primary">Sign Up</button>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- Home Page -->
+  <div id="home-page" class="active">
+    <section class="hero-section">
+      <div class="container">
+        <div class="hero">
+          <div class="hero-content">
+            <h1>Take Control of Sickle Cell Disease</h1>
+            <p class="hero-subtitle">CellGuard helps you manage sickle cell disease, predict crises before they happen, and live better with personalized tools and resources.</p>
+            <div class="hero-buttons">
+              <button class="btn btn-primary">Get Started</button>
+              <button class="btn btn-outline">Learn More</button>
+            </div>
+          </div>
+          <div class="hero-image">
+            <img src="{{ url_for('static', filename='images/hero-image.png') }}" alt="Sickle cell warrior using CellGuard app" />
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section class="features-section" style="background-color: #eef2ff">
+      <div class="container">
+        <h2 class="section-title" style="text-align: center">Everything You Need in One Place</h2>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-heartbeat"></i></div>
+            <h3>Sensor-Based Crisis Prediction</h3>
+            <p>Our advanced sensors monitor vital health metrics to predict potential sickle cell crises before they occur, allowing for preventive action.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-pills"></i></div>
+            <h3>Medication Management</h3>
+            <p>Never miss a dose with personalized medication reminders and tracking to help maintain your treatment plan.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-clipboard-list"></i></div>
+            <h3>Symptom Tracking</h3>
+            <p>Log and monitor your symptoms over time to identify patterns and better understand your condition.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-book-medical"></i></div>
+            <h3>Knowledge Library</h3>
+            <p>Access trusted, up-to-date information about sickle cell disease management, treatments, and research.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="testimonials-section">
+      <div class="container">
+        <h2 class="section-title" style="text-align: center">What Our Users Say</h2>
+        <div class="testimonials-grid">
+          <div class="testimonial-card">
+            <div class="testimonial-content">
+              <p>"CellGuard has transformed how I manage my sickle cell disease. The crisis prediction feature is a game-changer!"</p>
+              <div class="testimonial-author">
+                <img src="{{ url_for('static', filename='images/user1.jpg') }}" alt="User 1" />
+                <div>
+                  <h4>Sarah Johnson</h4>
+                  <p>Patient</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="testimonial-card">
+            <div class="testimonial-content">
+              <p>"As a caregiver, CellGuard gives me peace of mind knowing I can monitor my loved one's condition effectively."</p>
+              <div class="testimonial-author">
+                <img src="{{ url_for('static', filename='images/user2.jpg') }}" alt="User 2" />
+                <div>
+                  <h4>Michael Brown</h4>
+                  <p>Caregiver</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h4>CellGuard</h4>
+          <p>Empowering sickle cell patients with advanced monitoring and management tools.</p>
+          <div class="social-links">
+            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+          </div>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Quick Links</h4>
+          <ul class="footer-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/about">About Us</a></li>
+            <li><a href="/features">Features</a></li>
+            <li><a href="/contact">Contact</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Resources</h4>
+          <ul class="footer-links">
+            <li><a href="/library">Knowledge Library</a></li>
+            <li><a href="/research">Research Updates</a></li>
+            <li><a href="/support">Support Groups</a></li>
+            <li><a href="/faq">FAQ</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Contact Us</h4>
+          <ul class="footer-links">
+            <li><i class="fas fa-envelope"></i> support@cellguard.com</li>
+            <li><i class="fas fa-phone"></i> +1 (555) 123-4567</li>
+            <li><i class="fas fa-map-marker-alt"></i> 123 Health St, Medical District</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2025 CellGuard. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
+
+<style>
+  /* Footer Styles */
+  .site-footer {
+    background-color: #1a1a2e;
+    color: #fff;
+    padding: 4rem 0 2rem;
+    margin-top: 4rem;
+  }
+
+  .footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .footer-section h4 {
+    color: #fff;
+    margin-bottom: 1.5rem;
+    font-size: 1.2rem;
+  }
+
+  .footer-section p {
+    color: #b4b7c9;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+  }
+
+  .footer-links {
+    list-style: none;
+    padding: 0;
+  }
+
+  .footer-links li {
+    margin-bottom: 1rem;
+  }
+
+  .footer-links a {
+    color: #b4b7c9;
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+
+  .footer-links a:hover {
+    color: #fff;
+  }
+
+  .footer-links i {
+    margin-right: 0.5rem;
+    color: var(--primary);
+  }
+
+  .social-links {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .social-link {
+    color: #b4b7c9;
+    font-size: 1.2rem;
+    transition: color 0.3s;
+  }
+
+  .social-link:hover {
+    color: #fff;
+  }
+
+  .footer-bottom {
+    text-align: center;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .footer-bottom p {
+    color: #b4b7c9;
+    margin: 0;
+  }
+
+  /* Testimonials Section */
+  .testimonials-section {
+    padding: 4rem 0;
+    background-color: #fff;
+  }
+
+  .testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 2rem;
+  }
+
+  .testimonial-card {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .testimonial-content p {
+    font-style: italic;
+    margin-bottom: 1.5rem;
+    color: #333;
+  }
+
+  .testimonial-author {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .testimonial-author img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  .testimonial-author h4 {
+    margin: 0;
+    color: #333;
+  }
+
+  .testimonial-author p {
+    margin: 0;
+    color: #666;
+    font-size: 0.9rem;
+  }
+</style>
+  
+  

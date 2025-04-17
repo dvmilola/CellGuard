@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - CellGuard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <nav>
+    <div class="container nav-container">
+      <div class="logo">
+        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
+        CellGuard
+      </div>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/predictions" class="nav-link">Crisis Prediction</a>
+        <a href="/medications" class="nav-link">Medication</a>
+        <a href="/tracker" class="nav-link">Symptom Tracker</a>
+        <a href="/library" class="nav-link">Knowledge Library</a>
+        <a href="/emergency" class="nav-link">Emergency Contacts</a>
+        <a href="/profile" class="nav-link">Profile</a>
+        <a href="/provider" class="nav-link">Healthcare Provider</a>
+        <a href="/settings" class="nav-link">Settings</a>
+      </div>
+      <div class="auth-buttons">
+        <button class="btn btn-outline" id="login-btn">Log In</button>
+        <button class="btn btn-primary" id="signup-btn">Sign Up</button>
+      </div>
+    </div>
+  </nav>
+  
+  <main>
+    <section>
+      <div class="container">
+        <div class="auth-container">
+          <div class="auth-card">
+            <div class="auth-header">
+              <h1>Welcome Back</h1>
+              <p>Login to your CellGuard account to continue managing your health.</p>
+            </div>
+            
+            <form id="login-form" class="auth-form">
+              <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" required>
+              </div>
+              
+              <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+              </div>
+              
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox"> Remember me
+                </label>
+              </div>
+              
+              <button type="submit" class="btn btn-primary" style="width: 100%">Login</button>
+            </form>
+            
+            <div class="auth-footer">
+              <a href="#" id="forgot-password">Forgot Password?</a>
+              <p>Don't have an account? <a href="/signup">Sign Up</a></p>
+            </div>
+          </div>
+          
+          <div class="auth-features">
+            <h3>Why Choose CellGuard?</h3>
+            <div class="feature-list">
+              <div class="feature-item">
+                <i class="fas fa-shield-virus"></i>
+                <div class="feature-content">
+                  <h4>Advanced Crisis Prediction</h4>
+                  <p>AI-powered system to predict and prevent sickle cell crises</p>
+                </div>
+              </div>
+              
+              <div class="feature-item">
+                <i class="fas fa-pills"></i>
+                <div class="feature-content">
+                  <h4>Medication Management</h4>
+                  <p>Track and manage your medications with smart reminders</p>
+                </div>
+              </div>
+              
+              <div class="feature-item">
+                <i class="fas fa-heartbeat"></i>
+                <div class="feature-content">
+                  <h4>Health Monitoring</h4>
+                  <p>Real-time monitoring of vital signs and symptoms</p>
+                </div>
+              </div>
+              
+              <div class="feature-item">
+                <i class="fas fa-user-md"></i>
+                <div class="feature-content">
+                  <h4>Healthcare Provider Integration</h4>
+                  <p>Seamless communication with your healthcare team</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-logo">
+          <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
+          CellGuard
+        </div>
+        <div class="footer-links">
+          <a href="/">Home</a>
+          <a href="/about">About</a>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Service</a>
+          <a href="/contact">Contact Us</a>
+        </div>
+        <div class="footer-social">
+          <a href="#"><i class="fab fa-facebook"></i></a>
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fab fa-instagram"></i></a>
+          <a href="#"><i class="fab fa-linkedin"></i></a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2025 CellGuard. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html> 

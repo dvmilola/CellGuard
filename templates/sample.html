@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CellGuard - Sickle Cell Management</title>
+  <style>
+    :root {
+      --primary: #4a6fdc;
+      --primary-dark: #3354b8;
+      --secondary: #3ec1d3;
+      --tertiary: #f9f7f7;
+      --text-dark: #2b2e4a;
+      --text-light: #8a8eaa;
+      --danger: #ff6b6b;
+      --success: #67c23a;
+      --warning: #ffd166;
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background-color: #f8fafc;
+      color: var(--text-dark);
+    }
+    
+    nav {
+      background-color: white;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+    
+    .nav-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: var(--primary);
+    }
+    
+    .logo-icon {
+      margin-right: 0.5rem;
+      font-size: 1.8rem;
+    }
+    
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+    
+    .nav-link {
+      text-decoration: none;
+      color: var(--text-dark);
+      font-weight: 500;
+      transition: color 0.2s;
+      padding: 0.5rem 0;
+      position: relative;
+    }
+    
+    .nav-link.active {
+      color: var(--primary);
+    }
+    
+    .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background-color: var(--primary);
+      border-radius: 3px;
+    }
+    
+    .nav-link:hover {
+      color: var(--primary);
+    }
+    
+    .auth-buttons {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+    }
+    
+    .btn {
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+    }
+    
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+    }
+    
+    .btn-outline:hover {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--primary-dark);
+    }
+    
+    section {
+      padding: 3rem 0;
+    }
+    
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      color: var(--text-dark);
+    }
+    
+    h2 {
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
+      color: var(--text-dark);
+    }
+    
+    h3 {
+      font-size: 1.5rem;
+      margin-bottom: 1rem;
+      color: var(--text-dark);
+    }
+    
+    p {
+      line-height: 1.6;
+      margin-bottom: 1rem;
+      color: var(--text-light);
+    }
+    
+    .hero {
+      display: flex;
+      align-items: center;
+      gap: 2rem;
+    }
+    
+    .hero-content {
+      flex: 1;
+    }
+    
+    .hero-image {
+      flex: 1;
+      text-align: center;
+    }
+    
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-top: 2rem;
+    }
+    
+    .feature-card {
+      background: white;
+      border-radius: 10px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .feature-icon {
+      font-size: 2rem;
+      color: var(--primary);
+      margin-bottom: 1rem;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      margin-bottom: 2rem;
+    }
+    
+    .form-group {
+      margin-bottom: 1.5rem;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+    
+    input, select, textarea {
+      width: 100%;
+      padding: 0.8rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+    
+    .med-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      margin-bottom: 1.5rem;
+      border-left: 5px solid var(--primary);
+    }
+    
+    .med-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+    
+    .med-name {
+      font-weight: 600;
+      font-size: 1.2rem;
+    }
+    
+    .med-dose {
+      color: var(--text-light);
+    }
+    
+    .med-schedule {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .time-pill {
+      background: #eef2ff;
+      color: var(--primary);
+      padding: 0.3rem 0.8rem;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+    
+    .symptom-tracker {
+      margin-top: 2rem;
+    }
+    
+    .symptom-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    
+    .chart-container {
+      height: 300px;
+      margin-bottom: 2rem;
+      overflow: hidden; /* For placeholder */
+    }
+    
+    .article-card {
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      transition: transform 0.3s;
+    }
+    
+    .article-card:hover {
+      transform: translateY(-5px);
+    }
+    
+    .article-image {
+      height: 200px;
+      background-color: #eef2ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--primary);
+    }
+    
+    .article-content {
+      padding: 1.5rem;
+    }
+    
+    .article-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    
+    .article-excerpt {
+      color: var(--text-light);
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+    
+    .article-link {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    footer {
+      background-color: #2b2e4a;
+      color: white;
+      padding: 3rem 0;
+      margin-top: 3rem;
+    }
+    
+    .footer-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+    }
+    
+    .footer-section h4 {
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+      color: white;
+    }
+    
+    .footer-links {
+      list-style: none;
+    }
+    
+    .footer-links li {
+      margin-bottom: 0.8rem;
+    }
+    
+    .footer-links a {
+      color: #b4b7c9;
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+    
+    .footer-links a:hover {
+      color: white;
+    }
+    
+    .copyright {
+      margin-top: 2rem;
+      text-align: center;
+      color: #b4b7c9;
+      padding-top: 2rem;
+      border-top: 1px solid #3d4162;
+    }
+    
+    /* Page-specific styles */
+    #home-page, #predictions-page, #medications-page, #tracker-page, #library-page {
+      display: none;
+    }
+    
+    #home-page.active, #predictions-page.active, #medications-page.active, #tracker-page.active, #library-page.active {
+      display: block;
+    }
+    
+    /* Prediction page specific styles */
+    .sensor-data {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    
+    .sensor-card {
+      background: white;
+      padding: 1.5rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      flex: 1;
+      min-width: 180px;
+      text-align: center;
+    }
+    
+    .sensor-label {
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+      color: var(--text-light);
+    }
+    
+    .sensor-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    
+    .sensor-unit {
+      font-size: 0.9rem;
+      color: var(--text-light);
+    }
+    
+    .connect-button {
+      margin-bottom: 2rem;
+    }
+    
+    .prediction-result {
+      text-align: center;
+      padding: 2rem;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      margin-bottom: 2rem;
+    }
+    
+    .prediction-label {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+    }
+    
+    .prediction-value {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    
+    .prediction-description {
+      margin-top: 1rem;
+      color: var(--text-light);
+    }
+    
+    .sensor-readings-title {
+      margin: 2rem 0 1rem;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+      
+      .hero {
+        flex-direction: column;
+      }
+      
+      .hero-image {
+        order: -1;
+      }
+    }
+    
+    .social-links {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+    
+    .social-link {
+      color: #b4b7c9;
+      font-size: 1.2rem;
+      transition: color 0.3s;
+    }
+    
+    .social-link:hover {
+      color: white;
+    }
+    
+    .footer-section ul.footer-links li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .footer-section ul.footer-links li i {
+      color: var(--primary);
+    }
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
+</head>
+<body>
+  <nav>
+    <div class="container nav-container">
+      <div class="logo">
+        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
+        CellGuard
+      </div>
+      <div class="nav-links">
+        <a href="#" class="nav-link active" data-page="home-page">Home</a>
+        <a href="#" class="nav-link" data-page="predictions-page">Crisis Prediction</a>
+        <a href="#" class="nav-link" data-page="medications-page">Medication</a>
+        <a href="#" class="nav-link" data-page="tracker-page">Symptom Tracker</a>
+        <a href="#" class="nav-link" data-page="library-page">Knowledge Library</a>
+      </div>
+      <div class="auth-buttons">
+        <button class="btn btn-outline">Log In</button>
+        <button class="btn btn-primary">Sign Up</button>
+      </div>
+    </div>
+  </nav>
+  
+  <!-- Home Page -->
+  <div id="home-page" class="active">
+    <section>
+      <div class="container">
+        <div class="hero">
+          <div class="hero-content">
+            <h1>Take Control of Sickle Cell Disease</h1>
+            <p>CellGuard helps you manage sickle cell disease, predict crises before they happen, and live better with personalized tools and resources.</p>
+            <button class="btn btn-primary">Get Started</button>
+          </div>
+          <div class="hero-image">
+            <img src="/api/placeholder/400/320" alt="Patient using healthcare app" />
+          </div>
+        </div>
+      </div>
+    </section>
+    
+    <section style="background-color: #eef2ff">
+      <div class="container">
+        <h2 style="text-align: center">Everything You Need in One Place</h2>
+        <div class="feature-grid">
+          <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-heartbeat"></i></div>
+            <h3>Sensor-Based Crisis Prediction</h3>
+            <p>Our advanced sensors monitor vital health metrics to predict potential sickle cell crises before they occur, allowing for preventive action.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-pills"></i></div>
+            <h3>Medication Management</h3>
+            <p>Never miss a dose with personalized medication reminders and tracking to help maintain your treatment plan.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-clipboard-list"></i></div>
+            <h3>Symptom Tracking</h3>
+            <p>Log and monitor your symptoms over time to identify patterns and better understand your condition.</p>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon"><i class="fas fa-book-medical"></i></div>
+            <h3>Knowledge Library</h3>
+            <p>Access trusted, up-to-date information about sickle cell disease management, treatments, and research.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+  
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h4>CellGuard</h4>
+          <p style="color: #b4b7c9; margin-bottom: 1rem">Empowering sickle cell patients with advanced monitoring and management tools.</p>
+          <div class="social-links">
+            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+          </div>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Quick Links</h4>
+          <ul class="footer-links">
+            <li><a href="#">Home</a></li>
+            <li><a href="#">About Us</a></li>
+            <li><a href="#">Features</a></li>
+            <li><a href="#">Contact</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Resources</h4>
+          <ul class="footer-links">
+            <li><a href="#">Knowledge Library</a></li>
+            <li><a href="#">Research Updates</a></li>
+            <li><a href="#">Support Groups</a></li>
+            <li><a href="#">FAQ</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Contact Us</h4>
+          <ul class="footer-links">
+            <li><i class="fas fa-envelope"></i> support@cellguard.com</li>
+            <li><i class="fas fa-phone"></i> +1 (555) 123-4567</li>
+            <li><i class="fas fa-map-marker-alt"></i> 123 Health St, Medical District</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="copyright">
+        <p>&copy; 2025 CellGuard. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

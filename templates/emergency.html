@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Emergency Contacts - CellGuard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <nav>
+    <div class="container nav-container">
+      <div class="logo">
+        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
+        CellGuard
+      </div>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/predictions" class="nav-link">Crisis Prediction</a>
+        <a href="/medications" class="nav-link">Medication</a>
+        <a href="/tracker" class="nav-link">Symptom Tracker</a>
+        <a href="/library" class="nav-link">Knowledge Library</a>
+        <a href="/emergency" class="nav-link active">Emergency Contacts</a>
+        <a href="/profile" class="nav-link">Profile</a>
+        <a href="/provider" class="nav-link">Healthcare Provider</a>
+        <a href="/settings" class="nav-link">Settings</a>
+      </div>
+      <div class="auth-buttons">
+        <button class="btn btn-outline" id="login-btn">Log In</button>
+        <button class="btn btn-primary" id="signup-btn">Sign Up</button>
+      </div>
+    </div>
+  </nav>
+  
+  <main>
+    <section>
+      <div class="container">
+        <h1>Emergency Contacts</h1>
+        <p>Keep your emergency contacts up to date and easily accessible in case of a crisis.</p>
+        
+        <div class="grid-2">
+          <div class="card">
+            <h3>Your Emergency Contacts</h3>
+            <div id="contacts-list">
+              <div class="contact-card">
+                <div class="contact-header">
+                  <div class="contact-name">Dr. Sarah Johnson</div>
+                  <div class="contact-type">Primary Care Physician</div>
+                </div>
+                <div class="contact-details">
+                  <div><i class="fas fa-phone"></i> (555) 123-4567</div>
+                  <div><i class="fas fa-envelope"></i> dr.johnson@healthcare.com</div>
+                  <div><i class="fas fa-hospital"></i> City General Hospital</div>
+                </div>
+                <div class="contact-actions">
+                  <button class="btn btn-outline btn-sm"><i class="fas fa-edit"></i> Edit</button>
+                  <button class="btn btn-outline btn-sm btn-danger"><i class="fas fa-trash"></i> Delete</button>
+                </div>
+              </div>
+              
+              <div class="contact-card">
+                <div class="contact-header">
+                  <div class="contact-name">Emergency Room</div>
+                  <div class="contact-type">Hospital</div>
+                </div>
+                <div class="contact-details">
+                  <div><i class="fas fa-phone"></i> (555) 987-6543</div>
+                  <div><i class="fas fa-hospital"></i> City General Hospital ER</div>
+                </div>
+                <div class="contact-actions">
+                  <button class="btn btn-outline btn-sm"><i class="fas fa-edit"></i> Edit</button>
+                  <button class="btn btn-outline btn-sm btn-danger"><i class="fas fa-trash"></i> Delete</button>
+                </div>
+              </div>
+              
+              <div class="contact-card">
+                <div class="contact-header">
+                  <div class="contact-name">John Smith</div>
+                  <div class="contact-type">Family Member</div>
+                </div>
+                <div class="contact-details">
+                  <div><i class="fas fa-phone"></i> (555) 234-5678</div>
+                  <div><i class="fas fa-envelope"></i> john.smith@email.com</div>
+                </div>
+                <div class="contact-actions">
+                  <button class="btn btn-outline btn-sm"><i class="fas fa-edit"></i> Edit</button>
+                  <button class="btn btn-outline btn-sm btn-danger"><i class="fas fa-trash"></i> Delete</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card">
+            <h3>Add New Contact</h3>
+            <form id="contact-form">
+              <div class="form-group">
+                <label for="contact-name">Contact Name</label>
+                <input type="text" id="contact-name" required>
+              </div>
+              
+              <div class="form-group">
+                <label for="contact-type">Contact Type</label>
+                <select id="contact-type" required>
+                  <option value="">Select</option>
+                  <option value="physician">Physician</option>
+                  <option value="hospital">Hospital</option>
+                  <option value="family">Family Member</option>
+                  <option value="caregiver">Caregiver</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label for="contact-phone">Phone Number</label>
+                <input type="tel" id="contact-phone" required>
+              </div>
+              
+              <div class="form-group">
+                <label for="contact-email">Email (Optional)</label>
+                <input type="email" id="contact-email">
+              </div>
+              
+              <div class="form-group">
+                <label for="contact-notes">Additional Notes</label>
+                <textarea id="contact-notes" rows="3"></textarea>
+              </div>
+              
+              <button type="submit" class="btn btn-primary" style="width: 100%">Add Contact</button>
+            </form>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top: 2rem">
+          <h3>Emergency Services</h3>
+          <p>In case of a medical emergency, call emergency services immediately:</p>
+          
+          <div class="emergency-services">
+            <div class="emergency-card">
+              <div class="emergency-icon"><i class="fas fa-ambulance"></i></div>
+              <div class="emergency-info">
+                <div class="emergency-title">Emergency Services</div>
+                <div class="emergency-number">911</div>
+                <div class="emergency-description">For life-threatening emergencies</div>
+              </div>
+              <button class="btn btn-primary"><i class="fas fa-phone"></i> Call Now</button>
+            </div>
+            
+            <div class="emergency-card">
+              <div class="emergency-icon"><i class="fas fa-hospital"></i></div>
+              <div class="emergency-info">
+                <div class="emergency-title">Nearest Hospital</div>
+                <div class="emergency-number">City General Hospital</div>
+                <div class="emergency-description">123 Medical Center Dr, City, State 12345</div>
+              </div>
+              <button class="btn btn-primary"><i class="fas fa-directions"></i> Get Directions</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal">
+    <div class="modal-content">
+      <h2>Login to CellGuard</h2>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox"> Remember me
+          </label>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%">Login</button>
+      </form>
+      
+      <div style="text-align: center; margin-top: 1rem">
+        <a href="#" id="forgot-password">Forgot Password?</a>
+      </div>
+      
+      <div style="text-align: center; margin-top: 1rem">
+        Don't have an account? <a href="#" id="show-signup">Sign Up</a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Signup Modal -->
+  <div id="signup-modal" class="modal">
+    <div class="modal-content">
+      <h2>Create Your CellGuard Account</h2>
+      <form id="signup-form">
+        <div class="form-group">
+          <label for="signup-name">Full Name</label>
+          <input type="text" id="signup-name" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="signup-confirm-password">Confirm Password</label>
+          <input type="password" id="signup-confirm-password" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" required> I agree to the Terms of Service and Privacy Policy
+          </label>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%">Create Account</button>
+      </form>
+      
+      <div style="text-align: center; margin-top: 1rem">
+        Already have an account? <a href="#" id="show-login">Login</a>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-logo">
+          <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
+          CellGuard
+        </div>
+        <div class="footer-links">
+          <a href="/">Home</a>
+          <a href="/about">About</a>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Service</a>
+          <a href="/contact">Contact Us</a>
+        </div>
+        <div class="footer-social">
+          <a href="#"><i class="fab fa-facebook"></i></a>
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fab fa-instagram"></i></a>
+          <a href="#"><i class="fab fa-linkedin"></i></a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2025 CellGuard. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html> 

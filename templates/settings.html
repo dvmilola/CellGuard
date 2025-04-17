@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - CellGuard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <nav>
+    <div class="container nav-container">
+      <div class="logo">
+        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
+        CellGuard
+      </div>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/predictions" class="nav-link">Crisis Prediction</a>
+        <a href="/medications" class="nav-link">Medication</a>
+        <a href="/tracker" class="nav-link">Symptom Tracker</a>
+        <a href="/library" class="nav-link">Knowledge Library</a>
+        <a href="/emergency" class="nav-link">Emergency Contacts</a>
+        <a href="/profile" class="nav-link">Profile</a>
+        <a href="/provider" class="nav-link">Healthcare Provider</a>
+        <a href="/settings" class="nav-link active">Settings</a>
+      </div>
+      <div class="auth-buttons">
+        <button class="btn btn-outline" id="login-btn">Log In</button>
+        <button class="btn btn-primary" id="signup-btn">Sign Up</button>
+      </div>
+    </div>
+  </nav>
+  
+  <main>
+    <section>
+      <div class="container">
+        <h1>Settings</h1>
+        <p>Customize your CellGuard experience and manage your preferences.</p>
+        
+        <div class="grid-2">
+          <div>
+            <div class="card">
+              <h3>Account Settings</h3>
+              <form id="account-settings-form">
+                <div class="form-group">
+                  <label for="email">Email Address</label>
+                  <input type="email" id="email" value="user@example.com">
+                </div>
+                
+                <div class="form-group">
+                  <label for="password">Change Password</label>
+                  <input type="password" id="password" placeholder="Enter new password">
+                </div>
+                
+                <div class="form-group">
+                  <label for="confirm-password">Confirm New Password</label>
+                  <input type="password" id="confirm-password" placeholder="Confirm new password">
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Save Account Changes</button>
+              </form>
+            </div>
+            
+            <div class="card" style="margin-top: 2rem">
+              <h3>Notification Settings</h3>
+              <form id="notification-settings-form">
+                <div class="form-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" checked> Crisis Risk Alerts
+                  </label>
+                  <p class="form-help">Receive alerts when your crisis risk level changes</p>
+                </div>
+                
+                <div class="form-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" checked> Medication Reminders
+                  </label>
+                  <p class="form-help">Get reminders for your medication schedule</p>
+                </div>
+                
+                <div class="form-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" checked> Appointment Reminders
+                  </label>
+                  <p class="form-help">Receive reminders for upcoming appointments</p>
+                </div>
+                
+                <div class="form-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" checked> Weekly Health Reports
+                  </label>
+                  <p class="form-help">Get weekly summaries of your health data</p>
+                </div>
+                
+                <div class="form-group">
+                  <label for="notification-frequency">Notification Frequency</label>
+                  <select id="notification-frequency">
+                    <option value="realtime">Real-time</option>
+                    <option value="daily">Daily Digest</option>
+                    <option value="weekly">Weekly Summary</option>
+                  </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Save Notification Settings</button>
+              </form>
+            </div>
+          </div>
+          
+          <div>
+            <div class="card">
+              <h3>Privacy Settings</h3>
+              <form id="privacy-settings-form">
+                <div class="form-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" checked> Share Health Data with Healthcare Provider
+                  </label>
+                  <p class="form-help">Allow your healthcare provider to access your health data</p>
+                </div>
+                
+                <div class="form-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" checked> Share Crisis Alerts with Emergency Contacts
+                  </label>
+                  <p class="form-help">Automatically notify emergency contacts during high-risk situations</p>
+                </div>
+                
+                <div class="form-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox"> Share Anonymous Data for Research
+                  </label>
+                  <p class="form-help">Contribute to sickle cell disease research (data will be anonymized)</p>
+                </div>
+                
+                <div class="form-group">
+                  <label for="data-retention">Data Retention Period</label>
+                  <select id="data-retention">
+                    <option value="1year">1 Year</option>
+                    <option value="2years">2 Years</option>
+                    <option value="5years">5 Years</option>
+                    <option value="indefinite">Indefinite</option>
+                  </select>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Save Privacy Settings</button>
+              </form>
+            </div>
+            
+            <div class="card" style="margin-top: 2rem">
+              <h3>Device Settings</h3>
+              <form id="device-settings-form">
+                <div class="form-group">
+                  <label for="sensor-sampling">Sensor Sampling Rate</label>
+                  <select id="sensor-sampling">
+                    <option value="5min">Every 5 Minutes</option>
+                    <option value="15min">Every 15 Minutes</option>
+                    <option value="30min">Every 30 Minutes</option>
+                    <option value="1hour">Every Hour</option>
+                  </select>
+                </div>
+                
+                <div class="form-group">
+                  <label for="battery-saver">Battery Saver Mode</label>
+                  <select id="battery-saver">
+                    <option value="off">Off</option>
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                  </select>
+                </div>
+                
+                <div class="form-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" checked> Auto-sync Data
+                  </label>
+                  <p class="form-help">Automatically sync data when connected to the internet</p>
+                </div>
+                
+                <div class="form-group">
+                  <label class="checkbox-label">
+                    <input type="checkbox" checked> Background Monitoring
+                  </label>
+                  <p class="form-help">Continue monitoring when app is in background</p>
+                </div>
+                
+                <button type="submit" class="btn btn-primary">Save Device Settings</button>
+              </form>
+            </div>
+            
+            <div class="card" style="margin-top: 2rem">
+              <h3>Data Management</h3>
+              <div class="data-management-actions">
+                <button class="btn btn-outline"><i class="fas fa-download"></i> Export Health Data</button>
+                <button class="btn btn-outline"><i class="fas fa-trash"></i> Clear All Data</button>
+                <button class="btn btn-danger"><i class="fas fa-user-times"></i> Delete Account</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal">
+    <div class="modal-content">
+      <h2>Login to CellGuard</h2>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox"> Remember me
+          </label>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%">Login</button>
+      </form>
+      
+      <div style="text-align: center; margin-top: 1rem">
+        <a href="#" id="forgot-password">Forgot Password?</a>
+      </div>
+      
+      <div style="text-align: center; margin-top: 1rem">
+        Don't have an account? <a href="#" id="show-signup">Sign Up</a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Signup Modal -->
+  <div id="signup-modal" class="modal">
+    <div class="modal-content">
+      <h2>Create Your CellGuard Account</h2>
+      <form id="signup-form">
+        <div class="form-group">
+          <label for="signup-name">Full Name</label>
+          <input type="text" id="signup-name" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="signup-confirm-password">Confirm Password</label>
+          <input type="password" id="signup-confirm-password" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" required> I agree to the Terms of Service and Privacy Policy
+          </label>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%">Create Account</button>
+      </form>
+      
+      <div style="text-align: center; margin-top: 1rem">
+        Already have an account? <a href="#" id="show-login">Login</a>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-logo">
+          <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
+          CellGuard
+        </div>
+        <div class="footer-links">
+          <a href="/">Home</a>
+          <a href="/about">About</a>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Service</a>
+          <a href="/contact">Contact Us</a>
+        </div>
+        <div class="footer-social">
+          <a href="#"><i class="fab fa-facebook"></i></a>
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fab fa-instagram"></i></a>
+          <a href="#"><i class="fab fa-linkedin"></i></a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2025 CellGuard. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html> 

@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Healthcare Provider Dashboard - CellGuard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <nav>
+    <div class="container nav-container">
+      <div class="logo">
+        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
+        CellGuard
+      </div>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/predictions" class="nav-link">Crisis Prediction</a>
+        <a href="/medications" class="nav-link">Medication</a>
+        <a href="/tracker" class="nav-link">Symptom Tracker</a>
+        <a href="/library" class="nav-link">Knowledge Library</a>
+        <a href="/emergency" class="nav-link">Emergency Contacts</a>
+        <a href="/profile" class="nav-link">Profile</a>
+        <a href="/provider" class="nav-link active">Healthcare Provider</a>
+        <a href="/settings" class="nav-link">Settings</a>
+      </div>
+      <div class="auth-buttons">
+        <button class="btn btn-outline" id="login-btn">Log In</button>
+        <button class="btn btn-primary" id="signup-btn">Sign Up</button>
+      </div>
+    </div>
+  </nav>
+  
+  <main>
+    <section>
+      <div class="container">
+        <h1>Healthcare Provider Dashboard</h1>
+        <p>Access patient data, monitor progress, and manage care plans.</p>
+        
+        <div class="grid-2">
+          <div>
+            <div class="card">
+              <h3>Patient Overview</h3>
+              <div class="patient-stats">
+                <div class="stat-box">
+                  <div class="stat-value">12</div>
+                  <div class="stat-label">Active Patients</div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-value">3</div>
+                  <div class="stat-label">Crisis Alerts</div>
+                </div>
+                <div class="stat-box">
+                  <div class="stat-value">85%</div>
+                  <div class="stat-label">Medication Adherence</div>
+                </div>
+              </div>
+              
+              <div class="patient-list">
+                <h4>Recent Patients</h4>
+                <div class="patient-card">
+                  <div class="patient-info">
+                    <div class="patient-name">John Doe</div>
+                    <div class="patient-id">ID: 12345</div>
+                  </div>
+                  <div class="patient-status high-risk">High Risk</div>
+                </div>
+                <div class="patient-card">
+                  <div class="patient-info">
+                    <div class="patient-name">Jane Smith</div>
+                    <div class="patient-id">ID: 12346</div>
+                  </div>
+                  <div class="patient-status moderate-risk">Moderate Risk</div>
+                </div>
+                <div class="patient-card">
+                  <div class="patient-info">
+                    <div class="patient-name">Robert Johnson</div>
+                    <div class="patient-id">ID: 12347</div>
+                  </div>
+                  <div class="patient-status low-risk">Low Risk</div>
+                </div>
+                <div class="patient-card">
+                  <div class="patient-info">
+                    <div class="patient-name">Emily Davis</div>
+                    <div class="patient-id">ID: 12348</div>
+                  </div>
+                  <div class="patient-status moderate-risk">Moderate Risk</div>
+                </div>
+                <div class="patient-card">
+                  <div class="patient-info">
+                    <div class="patient-name">Michael Wilson</div>
+                    <div class="patient-id">ID: 12349</div>
+                  </div>
+                  <div class="patient-status low-risk">Low Risk</div>
+                </div>
+              </div>
+              
+              <button class="btn btn-primary" style="width: 100%; margin-top: 1rem">View All Patients</button>
+            </div>
+          </div>
+          
+          <div>
+            <div class="card">
+              <h3>Crisis Alerts</h3>
+              <div class="alert-list">
+                <div class="alert-card high">
+                  <div class="alert-header">
+                    <div class="alert-title">High Risk Alert</div>
+                    <div class="alert-time">2 hours ago</div>
+                  </div>
+                  <div class="alert-patient">Patient: John Doe</div>
+                  <div class="alert-details">Multiple symptoms detected including severe pain and fever</div>
+                  <button class="btn btn-primary">View Details</button>
+                </div>
+                
+                <div class="alert-card medium">
+                  <div class="alert-header">
+                    <div class="alert-title">Moderate Risk Alert</div>
+                    <div class="alert-time">5 hours ago</div>
+                  </div>
+                  <div class="alert-patient">Patient: Jane Smith</div>
+                  <div class="alert-details">Elevated temperature and increased pain levels</div>
+                  <button class="btn btn-primary">View Details</button>
+                </div>
+                
+                <div class="alert-card medium">
+                  <div class="alert-header">
+                    <div class="alert-title">Moderate Risk Alert</div>
+                    <div class="alert-time">1 day ago</div>
+                  </div>
+                  <div class="alert-patient">Patient: Emily Davis</div>
+                  <div class="alert-details">Decreased SpO2 levels and increased GSR readings</div>
+                  <button class="btn btn-primary">View Details</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="grid-2" style="margin-top: 2rem">
+          <div class="card">
+            <h3>Patient Analytics</h3>
+            <div class="chart-container">
+              <canvas id="patientAnalyticsChart"></canvas>
+            </div>
+            <div class="chart-legend">
+              <div class="legend-item">
+                <span class="legend-color" style="background-color: #4f46e5"></span>
+                <span class="legend-label">Crisis Events</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-color" style="background-color: #10b981"></span>
+                <span class="legend-label">Hospitalizations</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-color" style="background-color: #f59e0b"></span>
+                <span class="legend-label">Medication Adherence</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card">
+            <h3>Recent Patient Activity</h3>
+            <div class="activity-timeline">
+              <div class="timeline-item">
+                <div class="timeline-time">Today, 10:30 AM</div>
+                <div class="timeline-content">
+                  <div class="timeline-title">John Doe</div>
+                  <div class="timeline-description">Recorded severe pain (8/10) in back and chest</div>
+                </div>
+              </div>
+              
+              <div class="timeline-item">
+                <div class="timeline-time">Today, 9:15 AM</div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Jane Smith</div>
+                  <div class="timeline-description">Missed morning medication dose</div>
+                </div>
+              </div>
+              
+              <div class="timeline-item">
+                <div class="timeline-time">Yesterday, 4:45 PM</div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Robert Johnson</div>
+                  <div class="timeline-description">Completed weekly symptom check-in</div>
+                </div>
+              </div>
+              
+              <div class="timeline-item">
+                <div class="timeline-time">Yesterday, 2:30 PM</div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Emily Davis</div>
+                  <div class="timeline-description">Sensor data indicated elevated risk (65%)</div>
+                </div>
+              </div>
+              
+              <div class="timeline-item">
+                <div class="timeline-time">Yesterday, 11:20 AM</div>
+                <div class="timeline-content">
+                  <div class="timeline-title">Michael Wilson</div>
+                  <div class="timeline-description">Scheduled follow-up appointment for next week</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top: 2rem">
+          <h3>Patient Care Plans</h3>
+          <div class="care-plan-list">
+            <div class="care-plan-card">
+              <div class="care-plan-header">
+                <div class="care-plan-patient">John Doe</div>
+                <div class="care-plan-date">Last Updated: March 15, 2025</div>
+              </div>
+              <div class="care-plan-content">
+                <div class="care-plan-section">
+                  <h4>Medications</h4>
+                  <ul>
+                    <li>Hydroxyurea 500mg daily</li>
+                    <li>Folic Acid 1mg daily</li>
+                    <li>Ibuprofen 400mg as needed for pain</li>
+                  </ul>
+                </div>
+                <div class="care-plan-section">
+                  <h4>Recommendations</h4>
+                  <ul>
+                    <li>Increase hydration to 3L daily</li>
+                    <li>Avoid extreme temperatures</li>
+                    <li>Schedule monthly check-up</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="care-plan-actions">
+                <button class="btn btn-outline btn-sm"><i class="fas fa-edit"></i> Edit Plan</button>
+                <button class="btn btn-primary btn-sm">View Full Plan</button>
+              </div>
+            </div>
+            
+            <div class="care-plan-card">
+              <div class="care-plan-header">
+                <div class="care-plan-patient">Jane Smith</div>
+                <div class="care-plan-date">Last Updated: March 10, 2025</div>
+              </div>
+              <div class="care-plan-content">
+                <div class="care-plan-section">
+                  <h4>Medications</h4>
+                  <ul>
+                    <li>Hydroxyurea 1000mg daily</li>
+                    <li>Folic Acid 1mg daily</li>
+                    <li>Acetaminophen 500mg as needed for pain</li>
+                  </ul>
+                </div>
+                <div class="care-plan-section">
+                  <h4>Recommendations</h4>
+                  <ul>
+                    <li>Maintain current hydration levels</li>
+                    <li>Consider stress management techniques</li>
+                    <li>Follow up in 2 weeks</li>
+                  </ul>
+                </div>
+              </div>
+              <div class="care-plan-actions">
+                <button class="btn btn-outline btn-sm"><i class="fas fa-edit"></i> Edit Plan</button>
+                <button class="btn btn-primary btn-sm">View Full Plan</button>
+              </div>
+            </div>
+          </div>
+          
+          <button class="btn btn-primary" style="margin-top: 1rem"><i class="fas fa-plus"></i> Create New Care Plan</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  <!-- Login Modal -->
+  <div id="login-modal" class="modal">
+    <div class="modal-content">
+      <h2>Login to CellGuard</h2>
+      <form id="login-form">
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox"> Remember me
+          </label>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%">Login</button>
+      </form>
+      
+      <div style="text-align: center; margin-top: 1rem">
+        <a href="#" id="forgot-password">Forgot Password?</a>
+      </div>
+      
+      <div style="text-align: center; margin-top: 1rem">
+        Don't have an account? <a href="#" id="show-signup">Sign Up</a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Signup Modal -->
+  <div id="signup-modal" class="modal">
+    <div class="modal-content">
+      <h2>Create Your CellGuard Account</h2>
+      <form id="signup-form">
+        <div class="form-group">
+          <label for="signup-name">Full Name</label>
+          <input type="text" id="signup-name" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="signup-email">Email</label>
+          <input type="email" id="signup-email" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="signup-password">Password</label>
+          <input type="password" id="signup-password" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="signup-confirm-password">Confirm Password</label>
+          <input type="password" id="signup-confirm-password" required>
+        </div>
+        
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" required> I agree to the Terms of Service and Privacy Policy
+          </label>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%">Create Account</button>
+      </form>
+      
+      <div style="text-align: center; margin-top: 1rem">
+        Already have an account? <a href="#" id="show-login">Login</a>
+      </div>
+    </div>
+  </div>
+  
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-logo">
+          <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
+          CellGuard
+        </div>
+        <div class="footer-links">
+          <a href="/">Home</a>
+          <a href="/about">About</a>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Service</a>
+          <a href="/contact">Contact Us</a>
+        </div>
+        <div class="footer-social">
+          <a href="#"><i class="fab fa-facebook"></i></a>
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fab fa-instagram"></i></a>
+          <a href="#"><i class="fab fa-linkedin"></i></a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2025 CellGuard. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html> 

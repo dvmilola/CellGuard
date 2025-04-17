@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - CellGuard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <nav>
+    <div class="container nav-container">
+      <div class="logo">
+        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
+        CellGuard
+      </div>
+      <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/predictions" class="nav-link">Crisis Prediction</a>
+        <a href="/medications" class="nav-link">Medication</a>
+        <a href="/tracker" class="nav-link">Symptom Tracker</a>
+        <a href="/library" class="nav-link">Knowledge Library</a>
+        <a href="/emergency" class="nav-link">Emergency Contacts</a>
+        <a href="/profile" class="nav-link">Profile</a>
+        <a href="/provider" class="nav-link">Healthcare Provider</a>
+        <a href="/settings" class="nav-link">Settings</a>
+      </div>
+      <div class="auth-buttons">
+        <button class="btn btn-outline" id="login-btn">Log In</button>
+        <button class="btn btn-primary" id="signup-btn">Sign Up</button>
+      </div>
+    </div>
+  </nav>
+  
+  <main>
+    <section>
+      <div class="container">
+        <div class="auth-container">
+          <div class="auth-card">
+            <div class="auth-header">
+              <h1>Create Your Account</h1>
+              <p>Join CellGuard to start managing your sickle cell disease effectively.</p>
+            </div>
+            
+            <form id="signup-form" class="auth-form">
+              <div class="form-group">
+                <label for="full-name">Full Name</label>
+                <input type="text" id="full-name" required>
+              </div>
+              
+              <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" required>
+              </div>
+              
+              <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+                <p class="form-help">Password must be at least 8 characters long and include numbers and special characters</p>
+              </div>
+              
+              <div class="form-group">
+                <label for="confirm-password">Confirm Password</label>
+                <input type="password" id="confirm-password" required>
+              </div>
+              
+              <div class="form-group">
+                <label for="user-type">I am a:</label>
+                <select id="user-type" required>
+                  <option value="">Select your role</option>
+                  <option value="patient">Patient</option>
+                  <option value="caregiver">Caregiver</option>
+                  <option value="healthcare-provider">Healthcare Provider</option>
+                </select>
+              </div>
+              
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox" required> I agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>
+                </label>
+              </div>
+              
+              <div class="form-group">
+                <label class="checkbox-label">
+                  <input type="checkbox"> I would like to receive updates and newsletters
+                </label>
+              </div>
+              
+              <button type="submit" class="btn btn-primary" style="width: 100%">Create Account</button>
+            </form>
+            
+            <div class="auth-footer">
+              <p>Already have an account? <a href="/login">Login</a></p>
+            </div>
+          </div>
+          
+          <div class="auth-features">
+            <h3>Join Our Community</h3>
+            <div class="feature-list">
+              <div class="feature-item">
+                <i class="fas fa-chart-line"></i>
+                <div class="feature-content">
+                  <h4>Track Your Health</h4>
+                  <p>Monitor your symptoms and vital signs in real-time</p>
+                </div>
+              </div>
+              
+              <div class="feature-item">
+                <i class="fas fa-bell"></i>
+                <div class="feature-content">
+                  <h4>Smart Alerts</h4>
+                  <p>Get notified about potential crises before they occur</p>
+                </div>
+              </div>
+              
+              <div class="feature-item">
+                <i class="fas fa-book-medical"></i>
+                <div class="feature-content">
+                  <h4>Educational Resources</h4>
+                  <p>Access comprehensive information about sickle cell disease</p>
+                </div>
+              </div>
+              
+              <div class="feature-item">
+                <i class="fas fa-users"></i>
+                <div class="feature-content">
+                  <h4>Community Support</h4>
+                  <p>Connect with others managing sickle cell disease</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-logo">
+          <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
+          CellGuard
+        </div>
+        <div class="footer-links">
+          <a href="/">Home</a>
+          <a href="/about">About</a>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Service</a>
+          <a href="/contact">Contact Us</a>
+        </div>
+        <div class="footer-social">
+          <a href="#"><i class="fab fa-facebook"></i></a>
+          <a href="#"><i class="fab fa-twitter"></i></a>
+          <a href="#"><i class="fab fa-instagram"></i></a>
+          <a href="#"><i class="fab fa-linkedin"></i></a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2025 CellGuard. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html> 
