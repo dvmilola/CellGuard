@@ -177,6 +177,14 @@ def home():
         print(f"Error rendering template: {str(e)}")
         return "Error loading page", 500
 
+@app.route('/predictions')
+def predictions():
+    try:
+        return render_template('predictions.html')
+    except Exception as e:
+        print(f"Error rendering template: {str(e)}")
+        return "Error loading page", 500
+
 @app.route('/emergency')
 def emergency():
     if 'user_id' not in session:
