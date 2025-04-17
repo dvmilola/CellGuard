@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Knowledge Library - CellGuard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <nav>
+    <div class="container nav-container">
+      <a href="/" class="logo">
+        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
+        CellGuard
+      </a>
+      
+      <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/predictions" class="nav-link">Crisis Prediction</a>
+        <a href="/medication" class="nav-link">Medication</a>
+        <a href="/symptom-tracker" class="nav-link">Symptom Tracker</a>
+        <a href="/knowledge-library" class="nav-link active">Knowledge Library</a>
+      </div>
+      
+      <div class="auth-buttons">
+        <button class="btn btn-outline">Log In</button>
+        <button class="btn btn-primary">Sign Up</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="knowledge-library-page">
+    <div class="container">
+      <!-- Search Section -->
+      <section class="search-section">
+        <div class="search-container">
+          <h1>Knowledge Library</h1>
+          <p class="subtitle">Your comprehensive resource for sickle cell disease information</p>
+          <div class="search-box">
+            <input type="text" placeholder="Search articles, resources, and more..." id="search-input">
+            <button class="btn btn-primary">
+              <i class="fas fa-search"></i> Search
+            </button>
+          </div>
+          <div class="quick-filters">
+            <button class="filter-btn active">All</button>
+            <button class="filter-btn">Articles</button>
+            <button class="filter-btn">Videos</button>
+            <button class="filter-btn">Downloads</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Categories Section -->
+      <section class="categories-section">
+        <h2>Browse by Category</h2>
+        <div class="category-grid">
+          <div class="category-card">
+            <div class="category-icon">
+              <i class="fas fa-book-medical"></i>
+            </div>
+            <h3>Sickle Cell Basics</h3>
+            <p>Understanding the fundamentals of sickle cell disease</p>
+            <a href="#" class="btn btn-outline">Explore</a>
+          </div>
+          <div class="category-card">
+            <div class="category-icon">
+              <i class="fas fa-pills"></i>
+            </div>
+            <h3>Treatment Options</h3>
+            <p>Current and emerging treatments for sickle cell</p>
+            <a href="#" class="btn btn-outline">Explore</a>
+          </div>
+          <div class="category-card">
+            <div class="category-icon">
+              <i class="fas fa-heartbeat"></i>
+            </div>
+            <h3>Lifestyle Management</h3>
+            <p>Tips for living well with sickle cell disease</p>
+            <a href="#" class="btn btn-outline">Explore</a>
+          </div>
+          <div class="category-card">
+            <div class="category-icon">
+              <i class="fas fa-graduation-cap"></i>
+            </div>
+            <h3>Research Updates</h3>
+            <p>Latest developments in sickle cell research</p>
+            <a href="#" class="btn btn-outline">Explore</a>
+          </div>
+        </div>
+      </section>
+
+      <!-- Featured Articles -->
+      <section class="featured-section">
+        <div class="section-header">
+          <h2>Featured Articles</h2>
+          <a href="#" class="view-all">View All</a>
+        </div>
+        <div class="article-grid">
+          <article class="article-card featured">
+            <div class="article-image">
+              <img src="https://via.placeholder.com/400x200" alt="Understanding Pain Management">
+            </div>
+            <div class="article-content">
+              <span class="article-category">Treatment Options</span>
+              <h3>Understanding Pain Management in Sickle Cell Disease</h3>
+              <p>Learn about effective pain management strategies and how to work with your healthcare team to develop a personalized plan.</p>
+              <div class="article-meta">
+                <span class="read-time"><i class="far fa-clock"></i> 8 min read</span>
+                <a href="#" class="read-more">Read More <i class="fas fa-arrow-right"></i></a>
+              </div>
+            </div>
+          </article>
+          <article class="article-card">
+            <div class="article-image">
+              <img src="https://via.placeholder.com/400x200" alt="Nutrition Guide">
+            </div>
+            <div class="article-content">
+              <span class="article-category">Lifestyle Management</span>
+              <h3>Nutrition Guide for Sickle Cell Patients</h3>
+              <p>Discover the best foods to support your health and manage symptoms effectively.</p>
+              <div class="article-meta">
+                <span class="read-time"><i class="far fa-clock"></i> 5 min read</span>
+                <a href="#" class="read-more">Read More <i class="fas fa-arrow-right"></i></a>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- Recent Updates -->
+      <section class="recent-updates">
+        <div class="section-header">
+          <h2>Recent Updates</h2>
+          <div class="update-filters">
+            <button class="filter-btn active">All</button>
+            <button class="filter-btn">New</button>
+            <button class="filter-btn">Updated</button>
+          </div>
+        </div>
+        <div class="updates-list">
+          <div class="update-item">
+            <div class="update-icon new">
+              <i class="fas fa-plus"></i>
+            </div>
+            <div class="update-content">
+              <h3>New Treatment Guidelines Released</h3>
+              <p>Updated recommendations for hydroxyurea therapy in adults with sickle cell disease.</p>
+              <span class="update-date">2 days ago</span>
+            </div>
+          </div>
+          <div class="update-item">
+            <div class="update-icon updated">
+              <i class="fas fa-sync"></i>
+            </div>
+            <div class="update-content">
+              <h3>Pain Management Protocol Updated</h3>
+              <p>Revised guidelines for acute pain management in emergency settings.</p>
+              <span class="update-date">1 week ago</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Resource Downloads -->
+      <section class="downloads-section">
+        <h2>Resource Downloads</h2>
+        <div class="downloads-grid">
+          <div class="download-card">
+            <div class="download-icon">
+              <i class="fas fa-file-pdf"></i>
+            </div>
+            <div class="download-info">
+              <h3>Emergency Care Guide</h3>
+              <p>PDF • 2.4 MB</p>
+            </div>
+            <a href="#" class="download-btn">
+              <i class="fas fa-download"></i>
+            </a>
+          </div>
+          <div class="download-card">
+            <div class="download-icon">
+              <i class="fas fa-file-alt"></i>
+            </div>
+            <div class="download-info">
+              <h3>Medication Schedule Template</h3>
+              <p>PDF • 1.2 MB</p>
+            </div>
+            <a href="#" class="download-btn">
+              <i class="fas fa-download"></i>
+            </a>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h4>CellGuard</h4>
+          <p>Empowering sickle cell patients with advanced monitoring and management tools.</p>
+          <div class="social-links">
+            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+          </div>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Quick Links</h4>
+          <ul class="footer-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/about">About Us</a></li>
+            <li><a href="/features">Features</a></li>
+            <li><a href="/contact">Contact</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Resources</h4>
+          <ul class="footer-links">
+            <li><a href="/knowledge-library">Knowledge Library</a></li>
+            <li><a href="/research">Research Updates</a></li>
+            <li><a href="/support">Support Groups</a></li>
+            <li><a href="/faq">FAQ</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Contact Us</h4>
+          <ul class="footer-links">
+            <li><i class="fas fa-envelope"></i> support@cellguard.com</li>
+            <li><i class="fas fa-phone"></i> +1 (555) 123-4567</li>
+            <li><i class="fas fa-map-marker-alt"></i> 123 Health St, Medical District</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2025 CellGuard. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
+
+<style>
+  /* Knowledge Library Page Styles */
+  .knowledge-library-page {
+    padding: 2rem 0;
+  }
+
+  /* Search Section */
+  .search-section {
+    background: linear-gradient(135deg, #4a90e2, #1a1a2e);
+    color: white;
+    padding: 4rem 0;
+    margin-bottom: 3rem;
+    border-radius: 10px;
+  }
+
+  .search-container {
+    max-width: 800px;
+    margin: 0 auto;
+    text-align: center;
+  }
+
+  .search-container h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    opacity: 0.9;
+    margin-bottom: 2rem;
+  }
+
+  .search-box {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .search-box input {
+    flex: 1;
+    padding: 1rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+
+  .quick-filters {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+  }
+
+  .filter-btn {
+    padding: 0.5rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    background: transparent;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .filter-btn.active {
+    background: white;
+    color: #1a1a2e;
+  }
+
+  /* Categories Section */
+  .categories-section {
+    margin-bottom: 4rem;
+  }
+
+  .categories-section h2 {
+    margin-bottom: 2rem;
+  }
+
+  .category-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+  }
+
+  .category-card {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    transition: transform 0.3s ease;
+  }
+
+  .category-card:hover {
+    transform: translateY(-5px);
+  }
+
+  .category-icon {
+    font-size: 2.5rem;
+    color: #4a90e2;
+    margin-bottom: 1rem;
+  }
+
+  .category-card h3 {
+    margin-bottom: 1rem;
+  }
+
+  .category-card p {
+    color: #666;
+    margin-bottom: 1.5rem;
+  }
+
+  /* Featured Articles */
+  .featured-section {
+    margin-bottom: 4rem;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+
+  .view-all {
+    color: #4a90e2;
+    text-decoration: none;
+  }
+
+  .article-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+  }
+
+  .article-card {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .article-card.featured {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .article-image {
+    height: 200px;
+    overflow: hidden;
+  }
+
+  .article-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .article-content {
+    padding: 1.5rem;
+  }
+
+  .article-category {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: #f0f9ff;
+    color: #4a90e2;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+  }
+
+  .article-card h3 {
+    margin-bottom: 1rem;
+  }
+
+  .article-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+  }
+
+  .read-time {
+    color: #666;
+    font-size: 0.875rem;
+  }
+
+  .read-more {
+    color: #4a90e2;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  /* Recent Updates */
+  .recent-updates {
+    margin-bottom: 4rem;
+  }
+
+  .updates-list {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .update-item {
+    display: flex;
+    gap: 1.5rem;
+    padding: 1.5rem 0;
+    border-bottom: 1px solid #eee;
+  }
+
+  .update-item:last-child {
+    border-bottom: none;
+  }
+
+  .update-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+  }
+
+  .update-icon.new {
+    background: #e3f2fd;
+    color: #4a90e2;
+  }
+
+  .update-icon.updated {
+    background: #f3e5f5;
+    color: #9c27b0;
+  }
+
+  .update-content h3 {
+    margin-bottom: 0.5rem;
+  }
+
+  .update-date {
+    color: #666;
+    font-size: 0.875rem;
+  }
+
+  /* Downloads Section */
+  .downloads-section {
+    margin-bottom: 4rem;
+  }
+
+  .downloads-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+  }
+
+  .download-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .download-icon {
+    font-size: 2rem;
+    color: #4a90e2;
+  }
+
+  .download-info {
+    flex: 1;
+  }
+
+  .download-info h3 {
+    margin-bottom: 0.25rem;
+  }
+
+  .download-info p {
+    color: #666;
+    font-size: 0.875rem;
+  }
+
+  .download-btn {
+    color: #4a90e2;
+    font-size: 1.2rem;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+  }
+
+  .download-btn:hover {
+    background-color: #f0f9ff;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .search-box {
+      flex-direction: column;
+    }
+
+    .article-card.featured {
+      grid-template-columns: 1fr;
+    }
+
+    .quick-filters {
+      flex-wrap: wrap;
+    }
+  }
+
+  /* Footer Styles */
+  .site-footer {
+    background-color: #1a1a2e;
+    color: white;
+    padding: 4rem 0 2rem;
+    margin-top: 4rem;
+  }
+
+  .footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .footer-section h4 {
+    color: white;
+    margin-bottom: 1.5rem;
+    font-size: 1.2rem;
+  }
+
+  .footer-section p {
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 1.5rem;
+  }
+
+  .social-links {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .social-link {
+    color: white;
+    font-size: 1.2rem;
+    transition: color 0.3s ease;
+  }
+
+  .social-link:hover {
+    color: #4a90e2;
+  }
+
+  .footer-links {
+    list-style: none;
+    padding: 0;
+  }
+
+  .footer-links li {
+    margin-bottom: 0.75rem;
+  }
+
+  .footer-links a {
+    color: rgba(255, 255, 255, 0.8);
+    text-decoration: none;
+    transition: color 0.3s ease;
+  }
+
+  .footer-links a:hover {
+    color: #4a90e2;
+  }
+
+  .footer-links i {
+    margin-right: 0.5rem;
+    color: #4a90e2;
+  }
+
+  .footer-bottom {
+    text-align: center;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .footer-bottom p {
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+  }
+</style>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Search functionality
+    const searchInput = document.getElementById('search-input');
+    const searchBtn = document.querySelector('.search-box .btn');
+
+    searchBtn.addEventListener('click', function() {
+      const query = searchInput.value.trim();
+      if (query) {
+        // In a real implementation, this would search the database
+        console.log('Searching for:', query);
+        alert('Search functionality will be implemented here');
+      }
+    });
+
+    // Filter buttons
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    // Update filters
+    const updateFilters = document.querySelectorAll('.update-filters .filter-btn');
+    updateFilters.forEach(btn => {
+      btn.addEventListener('click', function() {
+        updateFilters.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+  });
+</script> 

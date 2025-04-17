@@ -11,24 +11,22 @@
 <body>
   <nav>
     <div class="container nav-container">
-      <div class="logo">
+      <a href="/" class="logo">
         <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
         CellGuard
-      </div>
+      </a>
+      
       <div class="nav-links">
         <a href="/" class="nav-link">Home</a>
         <a href="/predictions" class="nav-link">Crisis Prediction</a>
-        <a href="/medications" class="nav-link">Medication</a>
-        <a href="/tracker" class="nav-link">Symptom Tracker</a>
-        <a href="/library" class="nav-link">Knowledge Library</a>
-        <a href="/emergency" class="nav-link">Emergency Contacts</a>
-        <a href="/profile" class="nav-link">Profile</a>
-        <a href="/provider" class="nav-link">Healthcare Provider</a>
-        <a href="/settings" class="nav-link">Settings</a>
+        <a href="/medication" class="nav-link">Medication</a>
+        <a href="/symptom-tracker" class="nav-link">Symptom Tracker</a>
+        <a href="/knowledge-library" class="nav-link">Knowledge Library</a>
       </div>
+      
       <div class="auth-buttons">
-        <button class="btn btn-outline" id="login-btn">Log In</button>
-        <button class="btn btn-primary" id="signup-btn">Sign Up</button>
+        <a href="/login" class="btn btn-outline">Log In</a>
+        <a href="/signup" class="btn btn-primary">Sign Up</a>
       </div>
     </div>
   </nav>
@@ -43,31 +41,31 @@
               <p>Join CellGuard to start managing your sickle cell disease effectively.</p>
             </div>
             
-            <form id="signup-form" class="auth-form">
+            <form id="signup-form" class="auth-form" method="POST" action="/api/signup">
               <div class="form-group">
                 <label for="full-name">Full Name</label>
-                <input type="text" id="full-name" required>
+                <input type="text" id="full-name" name="fullName" required>
               </div>
               
               <div class="form-group">
                 <label for="email">Email Address</label>
-                <input type="email" id="email" required>
+                <input type="email" id="email" name="email" required>
               </div>
               
               <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" required>
+                <input type="password" id="password" name="password" required>
                 <p class="form-help">Password must be at least 8 characters long and include numbers and special characters</p>
               </div>
               
               <div class="form-group">
                 <label for="confirm-password">Confirm Password</label>
-                <input type="password" id="confirm-password" required>
+                <input type="password" id="confirm-password" name="confirmPassword" required>
               </div>
               
               <div class="form-group">
                 <label for="user-type">I am a:</label>
-                <select id="user-type" required>
+                <select id="user-type" name="userType" required>
                   <option value="">Select your role</option>
                   <option value="patient">Patient</option>
                   <option value="caregiver">Caregiver</option>
@@ -77,13 +75,13 @@
               
               <div class="form-group">
                 <label class="checkbox-label">
-                  <input type="checkbox" required> I agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>
+                  <input type="checkbox" name="termsAgreed" required> I agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>
                 </label>
               </div>
               
               <div class="form-group">
                 <label class="checkbox-label">
-                  <input type="checkbox"> I would like to receive updates and newsletters
+                  <input type="checkbox" name="newsletter"> I would like to receive updates and newsletters
                 </label>
               </div>
               
@@ -136,31 +134,266 @@
     </section>
   </main>
   
-  <footer>
+  <footer class="site-footer">
     <div class="container">
       <div class="footer-content">
-        <div class="footer-logo">
-          <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
-          CellGuard
+        <div class="footer-section">
+          <h4>CellGuard</h4>
+          <p>Empowering sickle cell patients with advanced monitoring and management tools.</p>
+          <div class="social-links">
+            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+          </div>
         </div>
-        <div class="footer-links">
-          <a href="/">Home</a>
-          <a href="/about">About</a>
-          <a href="/privacy">Privacy Policy</a>
-          <a href="/terms">Terms of Service</a>
-          <a href="/contact">Contact Us</a>
+        
+        <div class="footer-section">
+          <h4>Quick Links</h4>
+          <ul class="footer-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/about">About Us</a></li>
+            <li><a href="/features">Features</a></li>
+            <li><a href="/contact">Contact</a></li>
+          </ul>
         </div>
-        <div class="footer-social">
-          <a href="#"><i class="fab fa-facebook"></i></a>
-          <a href="#"><i class="fab fa-twitter"></i></a>
-          <a href="#"><i class="fab fa-instagram"></i></a>
-          <a href="#"><i class="fab fa-linkedin"></i></a>
+        
+        <div class="footer-section">
+          <h4>Resources</h4>
+          <ul class="footer-links">
+            <li><a href="/knowledge-library">Knowledge Library</a></li>
+            <li><a href="/research">Research Updates</a></li>
+            <li><a href="/support">Support Groups</a></li>
+            <li><a href="/faq">FAQ</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Contact Us</h4>
+          <ul class="footer-links">
+            <li><i class="fas fa-envelope"></i> support@cellguard.com</li>
+            <li><i class="fas fa-phone"></i> +1 (555) 123-4567</li>
+            <li><i class="fas fa-map-marker-alt"></i> 123 Health St, Medical District</li>
+          </ul>
         </div>
       </div>
+      
       <div class="footer-bottom">
         <p>&copy; 2025 CellGuard. All rights reserved.</p>
       </div>
     </div>
   </footer>
+
+  <style>
+    /* Auth Page Styles */
+    .auth-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4rem;
+      max-width: 1200px;
+      margin: 4rem auto;
+      padding: 2rem;
+    }
+
+    .auth-card {
+      background: white;
+      padding: 3rem;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .auth-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .auth-header h1 {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #1a1a2e;
+    }
+
+    .auth-header p {
+      color: #666;
+    }
+
+    .auth-form {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-group label {
+      font-weight: 500;
+      color: #1a1a2e;
+    }
+
+    .form-group input,
+    .form-group select {
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+
+    .form-help {
+      font-size: 0.875rem;
+      color: #666;
+      margin-top: 0.25rem;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-weight: normal;
+    }
+
+    .checkbox-label a {
+      color: #4a90e2;
+      text-decoration: none;
+    }
+
+    .auth-footer {
+      text-align: center;
+      margin-top: 2rem;
+    }
+
+    .auth-footer a {
+      color: #4a90e2;
+      text-decoration: none;
+    }
+
+    .auth-features {
+      padding: 2rem;
+    }
+
+    .auth-features h3 {
+      color: #1a1a2e;
+      margin-bottom: 2rem;
+      font-size: 1.5rem;
+    }
+
+    .feature-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .feature-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .feature-item i {
+      font-size: 1.5rem;
+      color: #4a90e2;
+      margin-top: 0.25rem;
+    }
+
+    .feature-content h4 {
+      color: #1a1a2e;
+      margin-bottom: 0.5rem;
+    }
+
+    .feature-content p {
+      color: #666;
+    }
+
+    @media (max-width: 768px) {
+      .auth-container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const signupForm = document.getElementById('signup-form');
+      const passwordInput = document.getElementById('password');
+      const confirmPasswordInput = document.getElementById('confirm-password');
+      
+      // Password validation
+      function validatePassword(password) {
+        const minLength = 8;
+        const hasNumber = /\d/.test(password);
+        const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+        
+        return password.length >= minLength && hasNumber && hasSpecialChar;
+      }
+      
+      signupForm.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const fullName = document.getElementById('full-name').value;
+        const email = document.getElementById('email').value;
+        const password = passwordInput.value;
+        const confirmPassword = confirmPasswordInput.value;
+        const userType = document.getElementById('user-type').value;
+        const termsAgreed = document.querySelector('input[name="termsAgreed"]').checked;
+        
+        // Validation
+        if (!fullName || !email || !password || !confirmPassword || !userType || !termsAgreed) {
+          alert('Please fill in all required fields');
+          return;
+        }
+        
+        if (password !== confirmPassword) {
+          alert('Passwords do not match');
+          return;
+        }
+        
+        if (!validatePassword(password)) {
+          alert('Password must be at least 8 characters long and include numbers and special characters');
+          return;
+        }
+        
+        try {
+          const response = await fetch('/api/signup', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              fullName: fullName,
+              email: email,
+              password: password,
+              userType: userType
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            window.location.href = '/login'; // Redirect to login page on success
+          } else {
+            alert(data.message || 'Signup failed. Please try again.');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          alert('An error occurred. Please try again.');
+        }
+      });
+      
+      // Real-time password validation
+      passwordInput.addEventListener('input', function() {
+        const password = this.value;
+        const helpText = this.nextElementSibling;
+        
+        if (validatePassword(password)) {
+          helpText.style.color = 'green';
+        } else {
+          helpText.style.color = '#666';
+        }
+      });
+    });
+  </script>
 </body>
 </html> 

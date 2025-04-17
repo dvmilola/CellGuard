@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Symptom Tracker - CellGuard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <nav>
+    <div class="container nav-container">
+      <a href="/" class="logo">
+        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
+        CellGuard
+      </a>
+      
+      <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/predictions" class="nav-link">Crisis Prediction</a>
+        <a href="/medication" class="nav-link">Medication</a>
+        <a href="/symptom-tracker" class="nav-link active">Symptom Tracker</a>
+        <a href="/knowledge-library" class="nav-link">Knowledge Library</a>
+      </div>
+      
+      <div class="auth-buttons">
+        <button class="btn btn-outline">Log In</button>
+        <button class="btn btn-primary">Sign Up</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="symptom-tracker-page">
+    <div class="container">
+      <div class="symptom-grid">
+        <!-- Daily Symptom Log -->
+        <section class="daily-log">
+          <div class="section-header">
+            <h2>Today's Symptoms</h2>
+            <div class="date-selector">
+              <button class="btn btn-outline" id="prev-day">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <span id="current-date">Today, April 17, 2024</span>
+              <button class="btn btn-outline" id="next-day">
+                <i class="fas fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="symptom-form">
+            <div class="form-group">
+              <label>Pain Level</label>
+              <div class="pain-scale">
+                <div class="scale-labels">
+                  <span>No Pain</span>
+                  <span>Severe Pain</span>
+                </div>
+                <input type="range" id="pain-level" min="0" max="10" value="0" class="slider">
+                <div class="scale-numbers">
+                  <span>0</span>
+                  <span>1</span>
+                  <span>2</span>
+                  <span>3</span>
+                  <span>4</span>
+                  <span>5</span>
+                  <span>6</span>
+                  <span>7</span>
+                  <span>8</span>
+                  <span>9</span>
+                  <span>10</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Common Symptoms</label>
+              <div class="symptom-checklist">
+                <label class="checkbox-container">
+                  <input type="checkbox" name="symptoms" value="fatigue">
+                  <span class="checkmark"></span>
+                  Fatigue
+                </label>
+                <label class="checkbox-container">
+                  <input type="checkbox" name="symptoms" value="headache">
+                  <span class="checkmark"></span>
+                  Headache
+                </label>
+                <label class="checkbox-container">
+                  <input type="checkbox" name="symptoms" value="joint-pain">
+                  <span class="checkmark"></span>
+                  Joint Pain
+                </label>
+                <label class="checkbox-container">
+                  <input type="checkbox" name="symptoms" value="fever">
+                  <span class="checkmark"></span>
+                  Fever
+                </label>
+                <label class="checkbox-container">
+                  <input type="checkbox" name="symptoms" value="shortness-breath">
+                  <span class="checkmark"></span>
+                  Shortness of Breath
+                </label>
+                <label class="checkbox-container">
+                  <input type="checkbox" name="symptoms" value="chest-pain">
+                  <span class="checkmark"></span>
+                  Chest Pain
+                </label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="symptom-notes">Additional Notes</label>
+              <textarea id="symptom-notes" rows="4" placeholder="Describe your symptoms in detail..."></textarea>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn btn-primary" id="save-symptoms">Save Symptoms</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Symptom History -->
+        <section class="symptom-history">
+          <div class="section-header">
+            <h2>Symptom History</h2>
+            <select id="history-range">
+              <option value="7">Last 7 Days</option>
+              <option value="30">Last 30 Days</option>
+              <option value="90">Last 90 Days</option>
+            </select>
+          </div>
+
+          <div class="chart-container">
+            <canvas id="symptom-history-chart"></canvas>
+          </div>
+
+          <div class="symptom-stats">
+            <div class="stat-card">
+              <span class="stat-label">Average Pain Level</span>
+              <span class="stat-value">3.2</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Most Common Symptom</span>
+              <span class="stat-value">Fatigue</span>
+            </div>
+            <div class="stat-card">
+              <span class="stat-label">Symptom-Free Days</span>
+              <span class="stat-value">12</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Recent Symptoms -->
+        <section class="recent-symptoms">
+          <h2>Recent Symptoms</h2>
+          <div class="symptom-list">
+            <div class="symptom-card">
+              <div class="symptom-header">
+                <span class="date">Apr 16, 2024</span>
+                <span class="pain-level">Pain Level: 4</span>
+              </div>
+              <div class="symptom-details">
+                <div class="symptoms">
+                  <span class="symptom-tag">Fatigue</span>
+                  <span class="symptom-tag">Headache</span>
+                </div>
+                <p class="notes">Mild headache in the morning, felt tired throughout the day.</p>
+              </div>
+            </div>
+
+            <div class="symptom-card">
+              <div class="symptom-header">
+                <span class="date">Apr 15, 2024</span>
+                <span class="pain-level">Pain Level: 2</span>
+              </div>
+              <div class="symptom-details">
+                <div class="symptoms">
+                  <span class="symptom-tag">Joint Pain</span>
+                </div>
+                <p class="notes">Slight discomfort in knees and elbows.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h4>CellGuard</h4>
+          <p>Empowering sickle cell patients with advanced monitoring and management tools.</p>
+          <div class="social-links">
+            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+          </div>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Quick Links</h4>
+          <ul class="footer-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/about">About Us</a></li>
+            <li><a href="/features">Features</a></li>
+            <li><a href="/contact">Contact</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Resources</h4>
+          <ul class="footer-links">
+            <li><a href="/library">Knowledge Library</a></li>
+            <li><a href="/research">Research Updates</a></li>
+            <li><a href="/support">Support Groups</a></li>
+            <li><a href="/faq">FAQ</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Contact Us</h4>
+          <ul class="footer-links">
+            <li><i class="fas fa-envelope"></i> support@cellguard.com</li>
+            <li><i class="fas fa-phone"></i> +1 (555) 123-4567</li>
+            <li><i class="fas fa-map-marker-alt"></i> 123 Health St, Medical District</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2025 CellGuard. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
+
+<style>
+  /* Symptom Tracker Page Styles */
+  .symptom-tracker-page {
+    padding: 2rem 0;
+  }
+
+  .symptom-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  /* Daily Log Section */
+  .daily-log {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+
+  .date-selector {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .date-selector button {
+    padding: 0.5rem;
+  }
+
+  #current-date {
+    font-weight: 500;
+    min-width: 200px;
+    text-align: center;
+  }
+
+  /* Pain Scale */
+  .pain-scale {
+    margin: 1rem 0;
+  }
+
+  .scale-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    color: #666;
+    font-size: 0.875rem;
+  }
+
+  .scale-numbers {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    color: #666;
+    font-size: 0.75rem;
+  }
+
+  .slider {
+    width: 100%;
+    height: 8px;
+    -webkit-appearance: none;
+    background: #e5e7eb;
+    border-radius: 4px;
+    outline: none;
+  }
+
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--primary);
+    border-radius: 50%;
+    cursor: pointer;
+  }
+
+  /* Symptom Checklist */
+  .symptom-checklist {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1rem 0;
+  }
+
+  .checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+  }
+
+  .checkmark {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ddd;
+    border-radius: 4px;
+    position: relative;
+  }
+
+  .checkbox-container input:checked + .checkmark {
+    background-color: var(--primary);
+    border-color: var(--primary);
+  }
+
+  .checkbox-container input:checked + .checkmark::after {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 2px;
+    width: 5px;
+    height: 10px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+
+  /* Symptom History Section */
+  .symptom-history {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .chart-container {
+    margin: 2rem 0;
+    height: 300px;
+  }
+
+  .symptom-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  /* Recent Symptoms Section */
+  .recent-symptoms {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .symptom-list {
+    margin-top: 1.5rem;
+  }
+
+  .symptom-card {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .symptom-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .date {
+    font-weight: 500;
+  }
+
+  .pain-level {
+    color: var(--primary);
+    font-weight: 500;
+  }
+
+  .symptoms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .symptom-tag {
+    background-color: #f0f9ff;
+    color: var(--primary);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+  }
+
+  .notes {
+    color: #666;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .section-header {
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .date-selector {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .symptom-checklist {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Footer Styles */
+  .site-footer {
+    background-color: #1a1a2e;
+    color: #fff;
+    padding: 4rem 0 2rem;
+    margin-top: 4rem;
+  }
+
+  .footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+
+  .footer-section h4 {
+    color: #fff;
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+  }
+
+  .footer-section p {
+    color: #a0a0a0;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+  }
+
+  .social-links {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .social-link {
+    color: #fff;
+    font-size: 1.2rem;
+    transition: color 0.3s ease;
+  }
+
+  .social-link:hover {
+    color: #4a90e2;
+  }
+
+  .footer-links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .footer-links li {
+    margin-bottom: 0.8rem;
+  }
+
+  .footer-links a,
+  .footer-links li {
+    color: #a0a0a0;
+    text-decoration: none;
+    transition: color 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .footer-links a:hover {
+    color: #4a90e2;
+  }
+
+  .footer-bottom {
+    text-align: center;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .footer-bottom p {
+    color: #a0a0a0;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .footer-content {
+      grid-template-columns: 1fr;
+      text-align: center;
+    }
+
+    .social-links {
+      justify-content: center;
+    }
+
+    .footer-links li {
+      justify-content: center;
+    }
+  }
+</style>
+
+<script>
+  // Initialize Symptom History Chart
+  const ctx = document.getElementById('symptom-history-chart').getContext('2d');
+  const symptomChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      datasets: [
+        {
+          label: 'Pain Level',
+          data: [3, 2, 4, 3, 5, 2, 3],
+          borderColor: 'rgb(255, 99, 132)',
+          backgroundColor: 'rgba(255, 99, 132, 0.1)',
+          tension: 0.4,
+          fill: true
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          titleFont: {
+            size: 14,
+            weight: 'bold'
+          },
+          bodyFont: {
+            size: 13
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 10,
+          title: {
+            display: true,
+            text: 'Pain Level'
+          }
+        }
+      }
+    }
+  });
+
+  // Date Navigation
+  const prevDayBtn = document.getElementById('prev-day');
+  const nextDayBtn = document.getElementById('next-day');
+  const currentDateEl = document.getElementById('current-date');
+
+  let currentDate = new Date();
+
+  function updateDateDisplay() {
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    currentDateEl.textContent = currentDate.toLocaleDateString('en-US', options);
+  }
+
+  prevDayBtn.addEventListener('click', () => {
+    currentDate.setDate(currentDate.getDate() - 1);
+    updateDateDisplay();
+  });
+
+  nextDayBtn.addEventListener('click', () => {
+    currentDate.setDate(currentDate.getDate() + 1);
+    updateDateDisplay();
+  });
+
+  // Save Symptoms
+  document.getElementById('save-symptoms').addEventListener('click', () => {
+    const painLevel = document.getElementById('pain-level').value;
+    const symptoms = Array.from(document.querySelectorAll('input[name="symptoms"]:checked'))
+      .map(checkbox => checkbox.value);
+    const notes = document.getElementById('symptom-notes').value;
+
+    // In a real implementation, this would save to the database
+    console.log('Saving symptoms:', { painLevel, symptoms, notes });
+
+    // Show success message
+    alert('Symptoms saved successfully!');
+  });
+
+  // History Range Selector
+  document.getElementById('history-range').addEventListener('change', function(e) {
+    const days = parseInt(e.target.value);
+    // In a real implementation, this would fetch new data based on the selected time range
+    console.log('Time range changed:', days);
+    
+    // For demo purposes, we'll just update the chart with some random data
+    const newData = Array.from({length: days}, () => Math.floor(Math.random() * 6));
+    symptomChart.data.labels = Array.from({length: days}, (_, i) => `Day ${i + 1}`);
+    symptomChart.data.datasets[0].data = newData;
+    symptomChart.update();
+  });
+</script> 

@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Medication Management - CellGuard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <nav>
+    <div class="container nav-container">
+      <a href="/" class="logo">
+        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
+        CellGuard
+      </a>
+      
+      <div class="nav-links">
+        <a href="/" class="nav-link">Home</a>
+        <a href="/predictions" class="nav-link">Crisis Prediction</a>
+        <a href="/medication" class="nav-link active">Medication</a>
+        <a href="/symptom-tracker" class="nav-link">Symptom Tracker</a>
+        <a href="/knowledge-library" class="nav-link">Knowledge Library</a>
+      </div>
+      
+      <div class="auth-buttons">
+        <button class="btn btn-outline">Log In</button>
+        <button class="btn btn-primary">Sign Up</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="medications-page">
+    <div class="container">
+      <div class="medications-grid">
+        <!-- Current Medications Section -->
+        <section class="current-medications">
+          <div class="section-header">
+            <h2>Current Medications</h2>
+            <button class="btn btn-primary" id="add-medication">
+              <i class="fas fa-plus"></i> Add Medication
+            </button>
+          </div>
+          
+          <div class="medication-list">
+            <div class="medication-card">
+              <div class="medication-header">
+                <h3>Hydroxyurea</h3>
+                <span class="medication-status status-active">Active</span>
+              </div>
+              <div class="medication-details">
+                <div class="detail-item">
+                  <i class="fas fa-capsules"></i>
+                  <span>500mg</span>
+                </div>
+                <div class="detail-item">
+                  <i class="fas fa-clock"></i>
+                  <span>Once daily</span>
+                </div>
+                <div class="detail-item">
+                  <i class="fas fa-calendar"></i>
+                  <span>Started: 01/15/2024</span>
+                </div>
+              </div>
+              <div class="medication-actions">
+                <button class="btn btn-outline">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="btn btn-outline">
+                  <i class="fas fa-history"></i> History
+                </button>
+              </div>
+            </div>
+
+            <div class="medication-card">
+              <div class="medication-header">
+                <h3>Folic Acid</h3>
+                <span class="medication-status status-active">Active</span>
+              </div>
+              <div class="medication-details">
+                <div class="detail-item">
+                  <i class="fas fa-capsules"></i>
+                  <span>1mg</span>
+                </div>
+                <div class="detail-item">
+                  <i class="fas fa-clock"></i>
+                  <span>Once daily</span>
+                </div>
+                <div class="detail-item">
+                  <i class="fas fa-calendar"></i>
+                  <span>Started: 01/15/2024</span>
+                </div>
+              </div>
+              <div class="medication-actions">
+                <button class="btn btn-outline">
+                  <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="btn btn-outline">
+                  <i class="fas fa-history"></i> History
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Medication Schedule Section -->
+        <section class="medication-schedule">
+          <h2>Today's Schedule</h2>
+          <div class="schedule-list">
+            <div class="schedule-item">
+              <div class="time">08:00 AM</div>
+              <div class="medication-info">
+                <h4>Hydroxyurea</h4>
+                <p>500mg</p>
+              </div>
+              <div class="schedule-status">
+                <span class="status-pending">Pending</span>
+                <button class="btn btn-primary btn-sm">
+                  <i class="fas fa-check"></i> Mark Taken
+                </button>
+              </div>
+            </div>
+
+            <div class="schedule-item">
+              <div class="time">08:00 AM</div>
+              <div class="medication-info">
+                <h4>Folic Acid</h4>
+                <p>1mg</p>
+              </div>
+              <div class="schedule-status">
+                <span class="status-pending">Pending</span>
+                <button class="btn btn-primary btn-sm">
+                  <i class="fas fa-check"></i> Mark Taken
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Refill Tracking Section -->
+        <section class="refill-tracking">
+          <h2>Refill Tracking</h2>
+          <div class="refill-list">
+            <div class="refill-item">
+              <div class="medication-info">
+                <h4>Hydroxyurea</h4>
+                <p>500mg</p>
+              </div>
+              <div class="refill-details">
+                <div class="progress-bar">
+                  <div class="progress" style="width: 60%"></div>
+                </div>
+                <div class="refill-info">
+                  <span>15 days remaining</span>
+                  <button class="btn btn-outline btn-sm">
+                    <i class="fas fa-shopping-cart"></i> Order Refill
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="refill-item">
+              <div class="medication-info">
+                <h4>Folic Acid</h4>
+                <p>1mg</p>
+              </div>
+              <div class="refill-details">
+                <div class="progress-bar">
+                  <div class="progress" style="width: 80%"></div>
+                </div>
+                <div class="refill-info">
+                  <span>20 days remaining</span>
+                  <button class="btn btn-outline btn-sm">
+                    <i class="fas fa-shopping-cart"></i> Order Refill
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Medication History Section -->
+        <section class="medication-history">
+          <div class="history-header">
+            <h2>Medication History</h2>
+            <div class="history-stats">
+              <div class="stat-card">
+                <span class="stat-label">Adherence Rate</span>
+                <span class="stat-value">95%</span>
+              </div>
+              <div class="stat-card">
+                <span class="stat-label">Total Medications</span>
+                <span class="stat-value">2</span>
+              </div>
+            </div>
+          </div>
+          <div class="chart-container">
+            <canvas id="medication-history-chart"></canvas>
+          </div>
+          <div class="history-controls">
+            <div class="time-range-selector">
+              <select id="time-range">
+                <option value="7">Last 7 Days</option>
+                <option value="30">Last 30 Days</option>
+                <option value="90">Last 90 Days</option>
+              </select>
+            </div>
+            <div class="chart-legend">
+              <div class="legend-item">
+                <span class="legend-color" style="background-color: rgb(255, 99, 132)"></span>
+                <span class="legend-label">Hydroxyurea</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-color" style="background-color: rgb(54, 162, 235)"></span>
+                <span class="legend-label">Folic Acid</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <!-- Add Medication Modal -->
+  <div class="modal" id="add-medication-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Add New Medication</h3>
+        <button class="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="add-medication-form">
+          <div class="form-group">
+            <label for="medication-name">Medication Name</label>
+            <input type="text" id="medication-name" required>
+          </div>
+          <div class="form-group">
+            <label for="medication-dosage">Dosage</label>
+            <input type="text" id="medication-dosage" required>
+          </div>
+          <div class="form-group">
+            <label for="medication-frequency">Frequency</label>
+            <select id="medication-frequency" required>
+              <option value="">Select frequency</option>
+              <option value="Once daily">Once daily</option>
+              <option value="Twice daily">Twice daily</option>
+              <option value="Three times daily">Three times daily</option>
+              <option value="Four times daily">Four times daily</option>
+              <option value="As needed">As needed</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="medication-time">Time</label>
+            <input type="time" id="medication-time" required>
+          </div>
+          <div class="form-group">
+            <label for="medication-notes">Notes</label>
+            <textarea id="medication-notes" rows="3"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-outline" id="cancel-medication">Cancel</button>
+            <button type="submit" class="btn btn-primary">Add Medication</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h4>CellGuard</h4>
+          <p>Empowering sickle cell patients with advanced monitoring and management tools.</p>
+          <div class="social-links">
+            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
+            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
+          </div>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Quick Links</h4>
+          <ul class="footer-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/about">About Us</a></li>
+            <li><a href="/features">Features</a></li>
+            <li><a href="/contact">Contact</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Resources</h4>
+          <ul class="footer-links">
+            <li><a href="/library">Knowledge Library</a></li>
+            <li><a href="/research">Research Updates</a></li>
+            <li><a href="/support">Support Groups</a></li>
+            <li><a href="/faq">FAQ</a></li>
+          </ul>
+        </div>
+        
+        <div class="footer-section">
+          <h4>Contact Us</h4>
+          <ul class="footer-links">
+            <li><i class="fas fa-envelope"></i> support@cellguard.com</li>
+            <li><i class="fas fa-phone"></i> +1 (555) 123-4567</li>
+            <li><i class="fas fa-map-marker-alt"></i> 123 Health St, Medical District</li>
+          </ul>
+        </div>
+      </div>
+      
+      <div class="footer-bottom">
+        <p>&copy; 2025 CellGuard. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
+
+<style>
+  /* Medications Page Styles */
+  .medications-page {
+    padding: 2rem 0;
+  }
+
+  .medications-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+
+  /* Current Medications Section */
+  .current-medications {
+    grid-column: 1 / -1;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .medication-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .medication-card {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .medication-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .medication-status {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+
+  .status-active {
+    background-color: #e3fcef;
+    color: #0e9f6e;
+  }
+
+  .status-inactive {
+    background-color: #fee2e2;
+    color: #dc2626;
+  }
+
+  .medication-details {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .detail-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #666;
+  }
+
+  .medication-actions {
+    display: flex;
+    gap: 1rem;
+  }
+
+  /* Schedule Section */
+  .medication-schedule {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .schedule-list {
+    margin-top: 1.5rem;
+  }
+
+  .schedule-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+  }
+
+  .schedule-item:last-child {
+    border-bottom: none;
+  }
+
+  .time {
+    width: 100px;
+    font-weight: 500;
+  }
+
+  .medication-info {
+    flex: 1;
+  }
+
+  .medication-info h4 {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .medication-info p {
+    margin: 0;
+    color: #666;
+    font-size: 0.875rem;
+  }
+
+  .schedule-status {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .status-pending {
+    color: #f59e0b;
+  }
+
+  .status-completed {
+    color: #10b981;
+  }
+
+  /* Refill Tracking Section */
+  .refill-tracking {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .refill-list {
+    margin-top: 1.5rem;
+  }
+
+  .refill-item {
+    padding: 1rem;
+    border-bottom: 1px solid #eee;
+  }
+
+  .refill-item:last-child {
+    border-bottom: none;
+  }
+
+  .progress-bar {
+    height: 8px;
+    background-color: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0.5rem 0;
+  }
+
+  .progress {
+    height: 100%;
+    background-color: var(--primary);
+    border-radius: 4px;
+  }
+
+  .refill-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #666;
+    font-size: 0.875rem;
+  }
+
+  /* History Section */
+  .medication-history {
+    grid-column: 1 / -1;
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .chart-container {
+    margin: 1.5rem 0;
+    height: 300px;
+  }
+
+  .history-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .history-stats {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .stat-card {
+    background-color: #f8f9fa;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-align: center;
+  }
+
+  .stat-label {
+    display: block;
+    font-size: 0.875rem;
+    color: #666;
+    margin-bottom: 0.25rem;
+  }
+
+  .stat-value {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  .history-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+  }
+
+  .time-range-selector select {
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    background-color: #fff;
+    font-size: 0.875rem;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 1.5rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  .legend-label {
+    font-size: 0.875rem;
+    color: #666;
+  }
+
+  /* Responsive Design */
+  @media (max-width: 1024px) {
+    .medications-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .medication-details {
+      grid-template-columns: 1fr;
+    }
+
+    .schedule-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 1rem;
+    }
+
+    .schedule-status {
+      width: 100%;
+      justify-content: space-between;
+    }
+  }
+
+  /* Modal Styles */
+  .modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-content {
+    background-color: #fff;
+    border-radius: 10px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem;
+    border-bottom: 1px solid #eee;
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+  }
+
+  .close-modal {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #333;
+    font-weight: 500;
+  }
+
+  .form-group input,
+  .form-group select,
+  .form-group textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+  }
+
+  .form-group textarea {
+    resize: vertical;
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  /* Footer Styles */
+  .site-footer {
+    background-color: #1a1a2e;
+    color: #fff;
+    padding: 4rem 0 2rem;
+    margin-top: 4rem;
+  }
+
+  .footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+  }
+
+  .footer-section h4 {
+    color: #fff;
+    margin-bottom: 1.5rem;
+    font-size: 1.2rem;
+  }
+
+  .footer-section p {
+    color: #b4b7c9;
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+  }
+
+  .footer-links {
+    list-style: none;
+    padding: 0;
+  }
+
+  .footer-links li {
+    margin-bottom: 1rem;
+  }
+
+  .footer-links a {
+    color: #b4b7c9;
+    text-decoration: none;
+    transition: color 0.3s;
+  }
+
+  .footer-links a:hover {
+    color: #fff;
+  }
+
+  .footer-links i {
+    margin-right: 0.5rem;
+    color: var(--primary);
+  }
+
+  .social-links {
+    display: flex;
+    gap: 1rem;
+  }
+
+  .social-link {
+    color: #b4b7c9;
+    font-size: 1.2rem;
+    transition: color 0.3s;
+  }
+
+  .social-link:hover {
+    color: #fff;
+  }
+
+  .footer-bottom {
+    text-align: center;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .footer-bottom p {
+    color: #b4b7c9;
+    margin: 0;
+  }
+</style>
+
+<script>
+  // Enhanced Chart Initialization
+  const ctx = document.getElementById('medication-history-chart').getContext('2d');
+  const historyChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      datasets: [
+        {
+          label: 'Hydroxyurea',
+          data: [1, 1, 1, 1, 1, 0, 1],
+          borderColor: 'rgb(255, 99, 132)',
+          backgroundColor: 'rgba(255, 99, 132, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: 'rgb(255, 99, 132)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        },
+        {
+          label: 'Folic Acid',
+          data: [1, 1, 1, 1, 1, 1, 1],
+          borderColor: 'rgb(54, 162, 235)',
+          backgroundColor: 'rgba(54, 162, 235, 0.1)',
+          tension: 0.4,
+          fill: true,
+          pointBackgroundColor: 'rgb(54, 162, 235)',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      },
+      plugins: {
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          titleFont: {
+            size: 14,
+            weight: 'bold'
+          },
+          bodyFont: {
+            size: 13
+          },
+          callbacks: {
+            label: function(context) {
+              return context.dataset.label + ': ' + (context.raw === 1 ? 'Taken' : 'Missed');
+            }
+          }
+        },
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 1,
+          ticks: {
+            stepSize: 1,
+            callback: function(value) {
+              return value === 1 ? 'Taken' : 'Missed';
+            }
+          },
+          grid: {
+            drawBorder: false
+          }
+        },
+        x: {
+          grid: {
+            display: false
+          }
+        }
+      }
+    }
+  });
+
+  // Time range selector handler
+  document.getElementById('time-range').addEventListener('change', function(e) {
+    const days = parseInt(e.target.value);
+    // In a real implementation, this would fetch new data based on the selected time range
+    console.log('Time range changed:', days);
+    
+    // For demo purposes, we'll just update the chart with some random data
+    const newData = Array.from({length: days}, () => Math.random() > 0.1 ? 1 : 0);
+    historyChart.data.labels = Array.from({length: days}, (_, i) => `Day ${i + 1}`);
+    historyChart.data.datasets[0].data = newData;
+    historyChart.data.datasets[1].data = newData.map(() => Math.random() > 0.2 ? 1 : 0);
+    historyChart.update();
+  });
+
+  // Add medication button handler
+  document.getElementById('add-medication').addEventListener('click', function() {
+    // In a real implementation, this would open a modal or form to add a new medication
+    console.log('Add medication clicked');
+  });
+
+  // Mark taken button handlers
+  document.querySelectorAll('.btn-primary.btn-sm').forEach(button => {
+    button.addEventListener('click', function() {
+      const statusElement = this.previousElementSibling;
+      statusElement.textContent = 'Completed';
+      statusElement.className = 'status-completed';
+      this.disabled = true;
+    });
+  });
+
+  // Modal functionality
+  const modal = document.getElementById('add-medication-modal');
+  const addButton = document.getElementById('add-medication');
+  const closeButton = document.querySelector('.close-modal');
+  const cancelButton = document.getElementById('cancel-medication');
+  const form = document.getElementById('add-medication-form');
+
+  // Show modal
+  addButton.addEventListener('click', () => {
+    modal.style.display = 'flex';
+  });
+
+  // Close modal
+  function closeModal() {
+    modal.style.display = 'none';
+    form.reset();
+  }
+
+  closeButton.addEventListener('click', closeModal);
+  cancelButton.addEventListener('click', closeModal);
+
+  // Close modal when clicking outside
+  window.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      closeModal();
+    }
+  });
+
+  // Handle form submission
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    
+    // Get form values
+    const name = document.getElementById('medication-name').value;
+    const dosage = document.getElementById('medication-dosage').value;
+    const frequency = document.getElementById('medication-frequency').value;
+    const time = document.getElementById('medication-time').value;
+    const notes = document.getElementById('medication-notes').value;
+
+    // Create new medication card
+    const medicationList = document.querySelector('.medication-list');
+    const newCard = document.createElement('div');
+    newCard.className = 'medication-card';
+    newCard.innerHTML = `
+      <div class="medication-header">
+        <h3>${name}</h3>
+        <span class="medication-status status-active">Active</span>
+      </div>
+      <div class="medication-details">
+        <div class="detail-item">
+          <i class="fas fa-capsules"></i>
+          <span>${dosage}</span>
+        </div>
+        <div class="detail-item">
+          <i class="fas fa-clock"></i>
+          <span>${frequency}</span>
+        </div>
+        <div class="detail-item">
+          <i class="fas fa-calendar"></i>
+          <span>Started: ${new Date().toLocaleDateString()}</span>
+        </div>
+      </div>
+      <div class="medication-actions">
+        <button class="btn btn-outline">
+          <i class="fas fa-edit"></i> Edit
+        </button>
+        <button class="btn btn-outline">
+          <i class="fas fa-history"></i> History
+        </button>
+      </div>
+    `;
+
+    // Add to schedule
+    const scheduleList = document.querySelector('.schedule-list');
+    const newScheduleItem = document.createElement('div');
+    newScheduleItem.className = 'schedule-item';
+    newScheduleItem.innerHTML = `
+      <div class="time">${time}</div>
+      <div class="medication-info">
+        <h4>${name}</h4>
+        <p>${dosage}</p>
+      </div>
+      <div class="schedule-status">
+        <span class="status-pending">Pending</span>
+        <button class="btn btn-primary btn-sm">
+          <i class="fas fa-check"></i> Mark Taken
+        </button>
+      </div>
+    `;
+
+    // Add to refill tracking
+    const refillList = document.querySelector('.refill-list');
+    const newRefillItem = document.createElement('div');
+    newRefillItem.className = 'refill-item';
+    newRefillItem.innerHTML = `
+      <div class="medication-info">
+        <h4>${name}</h4>
+        <p>${dosage}</p>
+      </div>
+      <div class="refill-details">
+        <div class="progress-bar">
+          <div class="progress" style="width: 100%"></div>
+        </div>
+        <div class="refill-info">
+          <span>30 days remaining</span>
+          <button class="btn btn-outline btn-sm">
+            <i class="fas fa-shopping-cart"></i> Order Refill
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Add new elements to the page
+    medicationList.appendChild(newCard);
+    scheduleList.appendChild(newScheduleItem);
+    refillList.appendChild(newRefillItem);
+
+    // Close modal and reset form
+    closeModal();
+
+    // Add event listener to the new "Mark Taken" button
+    const newMarkTakenButton = newScheduleItem.querySelector('.btn-primary.btn-sm');
+    newMarkTakenButton.addEventListener('click', function() {
+      const statusElement = this.previousElementSibling;
+      statusElement.textContent = 'Completed';
+      statusElement.className = 'status-completed';
+      this.disabled = true;
+    });
+  });
+</script> 

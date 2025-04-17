@@ -73,42 +73,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
   
-  // Form submissions
-  const loginForm = document.getElementById('login-form');
-  const signupForm = document.getElementById('signup-form');
-  
-  if (loginForm) {
-    loginForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const email = document.getElementById('login-email').value;
-      const password = document.getElementById('login-password').value;
-      const remember = document.querySelector('#login-form input[type="checkbox"]').checked;
-      
-      // In a real app, this would be handled by the backend
-      // For now, we'll just redirect to the home page
-      window.location.href = '/';
-    });
-  }
-  
-  if (signupForm) {
-    signupForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const name = document.getElementById('signup-name').value;
-      const email = document.getElementById('signup-email').value;
-      const password = document.getElementById('signup-password').value;
-      const confirmPassword = document.getElementById('signup-confirm-password').value;
-      
-      if (password !== confirmPassword) {
-        alert('Passwords do not match');
-        return;
-      }
-      
-      // In a real app, this would be handled by the backend
-      // For now, we'll just redirect to the login page
-      window.location.href = '/login';
-    });
-  }
-  
   // Emergency contacts
   const contactForm = document.getElementById('contact-form');
   if (contactForm) {

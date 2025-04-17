@@ -75,6 +75,48 @@ class HealthcareProvider(db.Model):
     email = db.Column(db.String(120), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+class Medication(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    dosage = db.Column(db.String(50), nullable=False)
+    frequency = db.Column(db.String(50), nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date)
+    is_active = db.Column(db.Boolean, default=True)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class MedicationSchedule(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    medication_id = db.Column(db.Integer, db.ForeignKey('medication.id'), nullable=False)
+    time = db.Column(db.Time, nullable=False)
+    is_taken = db.Column(db.Boolean, default=False)
+    taken_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class MedicationRefill(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    medication_id = db.Column(db.Integer, db.ForeignKey('medication.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    days_supply = db.Column(db.Integer, nullable=False)
+    refill_date = db.Column(db.Date, nullable=False)
+    next_refill_date = db.Column(db.Date, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class Symptom(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    pain_level = db.Column(db.Integer, nullable=False)
+    symptoms = db.Column(db.String(500), nullable=False)  # JSON string of symptoms
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 # Import the prediction function from your model script
 # In a real implementation, you would import from your model file
 # from crisis_prediction_model import predict_crisis, pipeline
@@ -112,61 +154,80 @@ def predict_crisis(gsr, temperature, spo2):
 # No longer need to store predictions in memory as we're using a database
 
 # Authentication routes
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    if request.method == 'POST':
-        email = request.form.get('email')
-        password = request.form.get('password')
-        remember = request.form.get('remember') == 'on'
-        
-        user = User.query.filter_by(email=email).first()
-        
-        if user and user.check_password(password):
-            session['user_id'] = user.id
-            session['user_name'] = user.name
-            session['user_type'] = user.user_type
-            
-            if remember:
-                session.permanent = True
-                
-            flash('Login successful!', 'success')
-            return redirect(url_for('home'))
-        else:
-            flash('Invalid email or password', 'error')
-    
+@app.route('/login', methods=['GET'])
+def login_page():
     return render_template('login.html')
 
-@app.route('/signup', methods=['GET', 'POST'])
-def signup():
-    if request.method == 'POST':
-        name = request.form.get('full-name')
-        email = request.form.get('email')
-        password = request.form.get('password')
-        user_type = request.form.get('user-type')
-        
-        # Check if user already exists
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user:
-            flash('Email already registered', 'error')
-            return redirect(url_for('signup'))
-        
-        # Create new user
-        new_user = User(name=name, email=email, user_type=user_type)
-        new_user.set_password(password)
-        
-        db.session.add(new_user)
-        db.session.commit()
-        
-        flash('Account created successfully! Please login.', 'success')
-        return redirect(url_for('login'))
-    
+@app.route('/signup', methods=['GET'])
+def signup_page():
     return render_template('signup.html')
 
-@app.route('/logout')
-def logout():
-    session.clear()
-    flash('You have been logged out', 'info')
-    return redirect(url_for('home'))
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    remember_me = data.get('rememberMe', False)
+    
+    user = User.query.filter_by(email=email).first()
+    
+    if user and user.check_password(password):
+        session['user_id'] = user.id
+        session['user_name'] = user.name
+        session['user_type'] = user.user_type
+        
+        if remember_me:
+            session.permanent = True
+            
+        return jsonify({
+            'success': True,
+            'message': 'Login successful!',
+            'user': {
+                'id': user.id,
+                'name': user.name,
+                'email': user.email,
+                'user_type': user.user_type
+            }
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'message': 'Invalid email or password'
+        }), 401
+
+@app.route('/api/signup', methods=['POST'])
+def api_signup():
+    data = request.get_json()
+    name = data.get('fullName')
+    email = data.get('email')
+    password = data.get('password')
+    user_type = data.get('userType')
+    
+    # Check if user already exists
+    existing_user = User.query.filter_by(email=email).first()
+    if existing_user:
+        return jsonify({
+            'success': False,
+            'message': 'Email already registered'
+        }), 400
+    
+    # Create new user
+    new_user = User(name=name, email=email, user_type=user_type)
+    new_user.set_password(password)
+    
+    try:
+        db.session.add(new_user)
+        db.session.commit()
+        return jsonify({
+            'success': True,
+            'message': 'Account created successfully!'
+        })
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({
+            'success': False,
+            'message': 'Error creating account. Please try again.'
+        }), 500
 
 # Main routes
 @app.route('/')
@@ -226,6 +287,106 @@ def settings():
     
     user = User.query.get(session['user_id'])
     return render_template('settings.html', user=user)
+
+@app.route('/medication')
+def medications():
+    # In a real implementation, this would fetch the user's medications from the database
+    # For now, we'll use sample data
+    sample_medications = [
+        {
+            'name': 'Hydroxyurea',
+            'dosage': '500mg',
+            'frequency': 'Once daily',
+            'start_date': '2024-01-15',
+            'is_active': True
+        },
+        {
+            'name': 'Folic Acid',
+            'dosage': '1mg',
+            'frequency': 'Once daily',
+            'start_date': '2024-01-15',
+            'is_active': True
+        }
+    ]
+    
+    return render_template('medications.html', medications=sample_medications)
+
+@app.route('/api/medications', methods=['GET'])
+def get_medications():
+    # In a real implementation, this would fetch medications from the database
+    # For now, we'll return sample data
+    return jsonify([
+        {
+            'name': 'Hydroxyurea',
+            'dosage': '500mg',
+            'frequency': 'Once daily',
+            'start_date': '2024-01-15',
+            'is_active': True
+        },
+        {
+            'name': 'Folic Acid',
+            'dosage': '1mg',
+            'frequency': 'Once daily',
+            'start_date': '2024-01-15',
+            'is_active': True
+        }
+    ])
+
+@app.route('/api/medications/schedule', methods=['GET'])
+def get_medication_schedule():
+    # In a real implementation, this would fetch the schedule from the database
+    # For now, we'll return sample data
+    return jsonify([
+        {
+            'medication': 'Hydroxyurea',
+            'dosage': '500mg',
+            'time': '08:00',
+            'is_taken': False
+        },
+        {
+            'medication': 'Folic Acid',
+            'dosage': '1mg',
+            'time': '08:00',
+            'is_taken': False
+        }
+    ])
+
+@app.route('/api/medications/refills', methods=['GET'])
+def get_medication_refills():
+    # In a real implementation, this would fetch refill data from the database
+    # For now, we'll return sample data
+    return jsonify([
+        {
+            'medication': 'Hydroxyurea',
+            'dosage': '500mg',
+            'days_remaining': 15,
+            'progress': 60
+        },
+        {
+            'medication': 'Folic Acid',
+            'dosage': '1mg',
+            'days_remaining': 20,
+            'progress': 80
+        }
+    ])
+
+@app.route('/api/medications/history', methods=['GET'])
+def get_medication_history():
+    # In a real implementation, this would fetch history from the database
+    # For now, we'll return sample data
+    return jsonify({
+        'labels': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        'datasets': [
+            {
+                'label': 'Hydroxyurea',
+                'data': [1, 1, 1, 1, 1, 1, 1]
+            },
+            {
+                'label': 'Folic Acid',
+                'data': [1, 1, 1, 1, 1, 1, 1]
+            }
+        ]
+    })
 
 # API routes
 @app.route('/api/predict', methods=['POST'])
@@ -341,6 +502,51 @@ def add_contact():
         'email': new_contact.email,
         'notes': new_contact.notes
     })
+
+@app.route('/symptom-tracker')
+def symptom_tracker():
+    return render_template('symptom-tracker.html')
+
+@app.route('/api/symptoms', methods=['POST'])
+def save_symptoms():
+    if not session.get('user_id'):
+        return jsonify({'error': 'Not authenticated'}), 401
+        
+    data = request.json
+    try:
+        new_symptom = Symptom(
+            user_id=session['user_id'],
+            date=datetime.strptime(data['date'], '%Y-%m-%d').date(),
+            pain_level=data['pain_level'],
+            symptoms=json.dumps(data['symptoms']),
+            notes=data.get('notes', '')
+        )
+        db.session.add(new_symptom)
+        db.session.commit()
+        return jsonify({'message': 'Symptoms saved successfully'}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/symptoms', methods=['GET'])
+def get_symptoms():
+    if not session.get('user_id'):
+        return jsonify({'error': 'Not authenticated'}), 401
+        
+    try:
+        symptoms = Symptom.query.filter_by(user_id=session['user_id']).order_by(Symptom.date.desc()).all()
+        return jsonify([{
+            'id': s.id,
+            'date': s.date.isoformat(),
+            'pain_level': s.pain_level,
+            'symptoms': json.loads(s.symptoms),
+            'notes': s.notes
+        } for s in symptoms])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/knowledge-library')
+def knowledge_library():
+    return render_template('knowledge-library.html')
 
 # Make sure templates directory exists
 os.makedirs('templates', exist_ok=True)
