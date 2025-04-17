@@ -28,36 +28,8 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Page navigation
+// Authentication modals
 document.addEventListener('DOMContentLoaded', function() {
-  // Page navigation
-  const navLinks = document.querySelectorAll('.nav-link');
-  const pages = document.querySelectorAll('[id$="-page"]');
-  
-  navLinks.forEach(link => {
-    link.addEventListener('click', function(e) {
-      e.preventDefault();
-      
-      // Remove active class from all links and pages
-      navLinks.forEach(l => l.classList.remove('active'));
-      pages.forEach(p => p.classList.remove('active'));
-      
-      // Add active class to clicked link and corresponding page
-      this.classList.add('active');
-      const pageId = this.getAttribute('data-page');
-      document.getElementById(pageId).classList.add('active');
-      
-      // Close mobile menu if open
-      if (navLinks.classList.contains('active')) {
-        navLinks.classList.remove('active');
-        const icon = mobileMenuBtn.querySelector('i');
-        icon.classList.remove('fa-times');
-        icon.classList.add('fa-bars');
-      }
-    });
-  });
-  
-  // Authentication modals
   const loginBtn = document.getElementById('login-btn');
   const signupBtn = document.getElementById('signup-btn');
   const loginModal = document.getElementById('login-modal');

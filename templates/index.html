@@ -18,11 +18,11 @@
       </a>
       
       <div class="nav-links">
-        <a href="#" class="nav-link active" data-page="home-page">Home</a>
-        <a href="#" class="nav-link" data-page="predictions-page">Crisis Prediction</a>
-        <a href="#" class="nav-link" data-page="medications-page">Medication</a>
-        <a href="#" class="nav-link" data-page="tracker-page">Symptom Tracker</a>
-        <a href="#" class="nav-link" data-page="library-page">Knowledge Library</a>
+        <a href="/" class="nav-link active">Home</a>
+        <a href="/predictions" class="nav-link">Crisis Prediction</a>
+        <a href="/medication" class="nav-link">Medication</a>
+        <a href="/symptom-tracker" class="nav-link">Symptom Tracker</a>
+        <a href="/knowledge-library" class="nav-link">Knowledge Library</a>
       </div>
       
       <div class="auth-buttons">
@@ -45,9 +45,7 @@
               <button class="btn btn-outline">Learn More</button>
             </div>
           </div>
-          <div class="hero-image">
-            <img src="{{ url_for('static', filename='images/hero-image.png') }}" alt="Sickle cell warrior using CellGuard app" />
-          </div>
+          <!-- Temporarily removed hero image -->
         </div>
       </div>
     </section>
@@ -162,6 +160,24 @@
       </div>
     </div>
   </footer>
+
+  <script>
+    // Remove the page switching code since we're using proper navigation
+    document.addEventListener('DOMContentLoaded', function() {
+      // Keep the smooth scroll functionality
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({
+              behavior: 'smooth'
+            });
+          }
+        });
+      });
+    });
+  </script>
 </body>
 </html>
 
