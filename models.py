@@ -7,10 +7,10 @@ db = SQLAlchemy()
 
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128))
-    first_name = db.Column(db.String(64))
-    last_name = db.Column(db.String(64))
+    password_hash = db.Column(db.String(128), nullable=False)
+    user_type = db.Column(db.String(20), nullable=False)  # patient, caregiver, healthcare-provider
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def set_password(self, password):
@@ -38,4 +38,100 @@ class SensorReading(db.Model):
             'temperature': self.temperature,
             'spo2': self.spo2,
             'crisis_probability': self.crisis_probability
-        } 
+        }
+
+class Prediction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    gsr = db.Column(db.Float, nullable=False)
+    temperature = db.Column(db.Float, nullable=False)
+    spo2 = db.Column(db.Float, nullable=False)
+    crisis_predicted = db.Column(db.Boolean, nullable=False)
+    crisis_probability = db.Column(db.Float, nullable=False)
+    
+    user = db.relationship('User', backref=db.backref('predictions', lazy=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'timestamp': self.timestamp.isoformat(),
+            'gsr': self.gsr,
+            'temperature': self.temperature,
+            'spo2': self.spo2,
+            'crisis_predicted': self.crisis_predicted,
+            'crisis_probability': self.crisis_probability
+        }
+
+class EmergencyContact(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    contact_type = db.Column(db.String(50), nullable=False)
+    phone = db.Column(db.String(20), nullable=False)
+    email = db.Column(db.String(120))
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('emergency_contacts', lazy=True))
+
+class HealthcareProvider(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    specialty = db.Column(db.String(100), nullable=False)
+    hospital = db.Column(db.String(200))
+    phone = db.Column(db.String(20), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('healthcare_providers', lazy=True))
+
+class Medication(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(100), nullable=False)
+    dosage = db.Column(db.String(50), nullable=False)
+    frequency = db.Column(db.String(50), nullable=False)
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date)
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('medications', lazy=True))
+
+class MedicationSchedule(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    medication_id = db.Column(db.Integer, db.ForeignKey('medication.id'), nullable=False)
+    time = db.Column(db.Time, nullable=False)
+    is_taken = db.Column(db.Boolean, default=False)
+    taken_at = db.Column(db.DateTime)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    medication = db.relationship('Medication', backref=db.backref('schedules', lazy=True))
+
+class MedicationRefill(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    medication_id = db.Column(db.Integer, db.ForeignKey('medication.id'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False)
+    days_supply = db.Column(db.Integer, nullable=False)
+    refill_date = db.Column(db.Date, nullable=False)
+    next_refill_date = db.Column(db.Date, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    medication = db.relationship('Medication', backref=db.backref('refills', lazy=True))
+
+class Symptom(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    date = db.Column(db.Date, nullable=False)
+    pain_level = db.Column(db.Integer, nullable=False)
+    symptoms = db.Column(db.String(500), nullable=False)  # JSON string of symptoms
+    notes = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    user = db.relationship('User', backref=db.backref('symptoms', lazy=True)) 

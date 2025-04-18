@@ -9,9 +9,13 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from crisis_prediction_model import predict_crisis  # Only import the prediction function
 from flask_cors import CORS
-from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_migrate import Migrate
-from models import db, User, SensorReading
+from models import (
+    db, User, SensorReading, Prediction, EmergencyContact, 
+    HealthcareProvider, Medication, MedicationSchedule, 
+    MedicationRefill, Symptom
+)
 
 
 # Configure the application
@@ -35,133 +39,7 @@ login_manager.login_message_category = 'info'
 def load_user(user_id):
     return User.query.get(int(user_id))
 
-# Define the database models
-class Prediction(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    gsr = db.Column(db.Float, nullable=False)
-    temperature = db.Column(db.Float, nullable=False)
-    spo2 = db.Column(db.Float, nullable=False)
-    crisis_predicted = db.Column(db.Boolean, nullable=False)
-    crisis_probability = db.Column(db.Float, nullable=False)
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'timestamp': self.timestamp.isoformat(),
-            'gsr': self.gsr,
-            'temperature': self.temperature,
-            'spo2': self.spo2,
-            'crisis_predicted': self.crisis_predicted,
-            'crisis_probability': self.crisis_probability
-        }
-
-class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    email = db.Column(db.String(120), unique=True, nullable=False)
-    password_hash = db.Column(db.String(128), nullable=False)
-    user_type = db.Column(db.String(20), nullable=False)  # patient, caregiver, healthcare-provider
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
-        
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
-
-class EmergencyContact(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    name = db.Column(db.String(100), nullable=False)
-    contact_type = db.Column(db.String(50), nullable=False)
-    phone = db.Column(db.String(20), nullable=False)
-    email = db.Column(db.String(120))
-    notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-class HealthcareProvider(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    name = db.Column(db.String(100), nullable=False)
-    specialty = db.Column(db.String(100), nullable=False)
-    hospital = db.Column(db.String(200))
-    phone = db.Column(db.String(20), nullable=False)
-    email = db.Column(db.String(120), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-
-class Medication(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    name = db.Column(db.String(100), nullable=False)
-    dosage = db.Column(db.String(50), nullable=False)
-    frequency = db.Column(db.String(50), nullable=False)
-    start_date = db.Column(db.Date, nullable=False)
-    end_date = db.Column(db.Date)
-    is_active = db.Column(db.Boolean, default=True)
-    notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-class MedicationSchedule(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    medication_id = db.Column(db.Integer, db.ForeignKey('medication.id'), nullable=False)
-    time = db.Column(db.Time, nullable=False)
-    is_taken = db.Column(db.Boolean, default=False)
-    taken_at = db.Column(db.DateTime)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-class MedicationRefill(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    medication_id = db.Column(db.Integer, db.ForeignKey('medication.id'), nullable=False)
-    quantity = db.Column(db.Integer, nullable=False)
-    days_supply = db.Column(db.Integer, nullable=False)
-    refill_date = db.Column(db.Date, nullable=False)
-    next_refill_date = db.Column(db.Date, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-class Symptom(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    date = db.Column(db.Date, nullable=False)
-    pain_level = db.Column(db.Integer, nullable=False)
-    symptoms = db.Column(db.String(500), nullable=False)  # JSON string of symptoms
-    notes = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-class SensorReading(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
-    gsr = db.Column(db.Float, nullable=False)
-    temperature = db.Column(db.Float, nullable=False)
-    spo2 = db.Column(db.Float, nullable=False)
-    crisis_probability = db.Column(db.Float, nullable=False)
-    
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'timestamp': self.timestamp.isoformat(),
-            'gsr': self.gsr,
-            'temperature': self.temperature,
-            'spo2': self.spo2,
-            'crisis_probability': self.crisis_probability
-        }
-
-# Import the prediction function from your model script
-# In a real implementation, you would import from your model file
-# from crisis_prediction_model import predict_crisis, pipeline
-try:
-    model = joblib.load('crisis_model.joblib')
-    print("Model loaded successfully")
-except FileNotFoundError:
-    print("Model file not found. Using default prediction function.")
-    model = None
-
-# Create the database tables
+# Create database tables
 with app.app_context():
     db.create_all()
     # Print database info for verification
