@@ -148,13 +148,14 @@
     </section>
   </main>
   
-  <footer class="footer">
+  <footer>
     <div class="container">
       <div class="footer-content">
         <div class="footer-section">
           <h3>CellGuard</h3>
-          <p>Empowering individuals with sickle cell disease through advanced monitoring and management tools.</p>
+          <p>Empowering individuals with sickle cell disease through advanced monitoring and prediction technology.</p>
         </div>
+        
         <div class="footer-section">
           <h3>Quick Links</h3>
           <ul>
@@ -165,12 +166,16 @@
             <li><a href="/knowledge-library">Knowledge Library</a></li>
           </ul>
         </div>
+        
         <div class="footer-section">
           <h3>Contact</h3>
-          <p>Email: info@cellguard.com</p>
-          <p>Phone: +1 (555) 123-4567</p>
+          <ul>
+            <li><i class="fas fa-envelope"></i> support@cellguard.com</li>
+            <li><i class="fas fa-phone"></i> +1 (555) 123-4567</li>
+          </ul>
         </div>
       </div>
+      
       <div class="footer-bottom">
         <p>&copy; 2024 CellGuard. All rights reserved.</p>
       </div>
@@ -367,6 +372,68 @@
       .social-buttons {
         flex-direction: column;
       }
+    }
+
+    /* Footer Styles */
+    footer {
+      background-color: #1a1a2e;
+      color: #fff;
+      padding: 4rem 0 2rem;
+      margin-top: 4rem;
+    }
+
+    .footer-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .footer-section h3 {
+      color: #fff;
+      margin-bottom: 1.5rem;
+      font-size: 1.2rem;
+    }
+
+    .footer-section p {
+      color: #b4b7c9;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+
+    .footer-section ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .footer-section ul li {
+      margin-bottom: 1rem;
+    }
+
+    .footer-section ul li a {
+      color: #b4b7c9;
+      text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    .footer-section ul li a:hover {
+      color: #fff;
+    }
+
+    .footer-section ul li i {
+      margin-right: 0.5rem;
+      color: var(--primary);
+    }
+
+    .footer-bottom {
+      text-align: center;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .footer-bottom p {
+      color: #b4b7c9;
+      margin: 0;
     }
   </style>
 
