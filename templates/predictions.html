@@ -1,656 +1,746 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crisis Prediction - CellGuard</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crisis Prediction - CellGuard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body>
-  <nav>
-    <div class="container nav-container">
-      <a href="/" class="logo">
-        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
-        CellGuard
-      </a>
-      
-      <div class="nav-links">
-        <a href="/" class="nav-link">Home</a>
-        <a href="/predictions" class="nav-link active">Crisis Prediction</a>
-        <a href="/medication" class="nav-link">Medication</a>
-        <a href="/symptom-tracker" class="nav-link">Symptom Tracker</a>
-        <a href="/knowledge-library" class="nav-link">Knowledge Library</a>
-      </div>
-      
-      <div class="auth-buttons">
-        <a href="/login" class="btn btn-outline">Log In</a>
-        <a href="/signup" class="btn btn-primary">Sign Up</a>
-      </div>
-    </div>
-  </nav>
-
-  <main class="predictions-page">
-    <div class="container">
-      <div class="prediction-grid">
-        <!-- Real-time Monitoring Section -->
-        <section class="monitoring-section">
-          <h2>Real-time Monitoring</h2>
-          <div class="sensor-grid">
-            <div class="sensor-card">
-              <div class="sensor-header">
-                <i class="fas fa-hand-holding-medical"></i>
-                <h3>GSR (Galvanic Skin Response)</h3>
-              </div>
-              <div class="sensor-value" id="gsr-value">--</div>
-              <div class="sensor-status" id="gsr-status">No data</div>
+    <nav>
+        <div class="container nav-container">
+            <a href="/" class="logo">
+                <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
+                CellGuard
+            </a>
+            
+            <div class="nav-links">
+                <a href="/" class="nav-link">Home</a>
+                <a href="/predictions" class="nav-link active">Crisis Prediction</a>
+                <a href="/medication" class="nav-link">Medication</a>
+                <a href="/symptom-tracker" class="nav-link">Symptom Tracker</a>
+                <a href="/knowledge-library" class="nav-link">Knowledge Library</a>
             </div>
             
-            <div class="sensor-card">
-              <div class="sensor-header">
-                <i class="fas fa-thermometer-half"></i>
-                <h3>Temperature</h3>
-              </div>
-              <div class="sensor-value" id="temp-value">--</div>
-              <div class="sensor-status" id="temp-status">No data</div>
+            <div class="auth-buttons">
+                {% if current_user.is_authenticated %}
+                    <div class="dropdown">
+                        <button class="btn btn-outline dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle"></i>
+                            {{ current_user.first_name }}
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a class="dropdown-item" href="/profile">Profile</a></li>
+                            <li><a class="dropdown-item" href="/settings">Settings</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                        </ul>
+                    </div>
+                {% else %}
+                    <a href="/login" class="btn btn-outline">Log In</a>
+                    <a href="/signup" class="btn btn-primary">Sign Up</a>
+                {% endif %}
             </div>
-            
-            <div class="sensor-card">
-              <div class="sensor-header">
-                <i class="fas fa-lungs"></i>
-                <h3>SpO2</h3>
-              </div>
-              <div class="sensor-value" id="spo2-value">--</div>
-              <div class="sensor-status" id="spo2-status">No data</div>
-            </div>
-          </div>
-        </section>
+        </div>
+    </nav>
 
-        <!-- Prediction Results Section -->
-        <section class="prediction-section">
-          <h2>Crisis Prediction</h2>
-          <div class="prediction-card">
-            <div class="prediction-header">
-              <h3>Current Status</h3>
-              <div class="prediction-indicator" id="crisis-indicator">
-                <span class="indicator-dot"></span>
-                <span class="indicator-text">Analyzing...</span>
-              </div>
-            </div>
-            
-            <div class="prediction-details">
-              <div class="probability-meter">
-                <div class="meter-fill" id="probability-fill"></div>
-                <div class="meter-text" id="probability-text">0%</div>
-              </div>
-              
-              <div class="prediction-actions">
-                <button class="btn btn-primary" id="start-monitoring">
-                  <i class="fas fa-play"></i> Start Monitoring
-                </button>
-                <button class="btn btn-outline" id="emergency-contact">
-                  <i class="fas fa-phone-alt"></i> Contact Emergency
-                </button>
-              </div>
-            </div>
-          </div>
-        </section>
+    <div class="predictions-page">
+        <div class="container">
+            <div class="prediction-grid">
+                <!-- Real-time Monitoring Section -->
+                <section class="monitoring-section">
+                    <h2>Real-time Monitoring</h2>
+                    <div class="sensor-grid">
+                        <div class="sensor-card">
+                            <div class="sensor-header">
+                                <i class="fas fa-hand-holding-medical"></i>
+                                <h3>GSR (Galvanic Skin Response)</h3>
+                            </div>
+                            <div class="sensor-value" id="gsr-value">--</div>
+                            <div class="sensor-status" id="gsr-status">No data</div>
+                        </div>
+                        
+                        <div class="sensor-card">
+                            <div class="sensor-header">
+                                <i class="fas fa-thermometer-half"></i>
+                                <h3>Temperature</h3>
+                            </div>
+                            <div class="sensor-value" id="temp-value">--</div>
+                            <div class="sensor-status" id="temp-status">No data</div>
+                        </div>
+                        
+                        <div class="sensor-card">
+                            <div class="sensor-header">
+                                <i class="fas fa-lungs"></i>
+                                <h3>SpO2</h3>
+                            </div>
+                            <div class="sensor-value" id="spo2-value">--</div>
+                            <div class="sensor-status" id="spo2-status">No data</div>
+                        </div>
+                    </div>
+                </section>
 
-        <!-- Historical Data Section -->
-        <section class="history-section">
-          <h2>Historical Data</h2>
-          <div class="chart-container">
-            <canvas id="history-chart"></canvas>
-          </div>
-          <div class="history-controls">
-            <select id="time-range">
-              <option value="1">Last 24 Hours</option>
-              <option value="7">Last 7 Days</option>
-              <option value="30">Last 30 Days</option>
-            </select>
-          </div>
-        </section>
-      </div>
+                <!-- Prediction Results Section -->
+                <section class="prediction-section">
+                    <h2>Crisis Prediction</h2>
+                    <div class="prediction-card">
+                        <div class="prediction-header">
+                            <h3>Current Status</h3>
+                            <div class="prediction-indicator" id="crisis-indicator">
+                                <span class="indicator-dot"></span>
+                                <span class="indicator-text">Analyzing...</span>
+                            </div>
+                        </div>
+                        
+                        <div class="prediction-details">
+                            <div class="probability-meter">
+                                <div class="meter-fill" id="probability-fill"></div>
+                                <div class="meter-text" id="probability-text">0%</div>
+                            </div>
+                            
+                            <div class="prediction-actions">
+                                <button class="btn btn-primary" id="start-monitoring">
+                                    <i class="fas fa-play"></i> Start Monitoring
+                                </button>
+                                <button class="btn btn-outline" id="emergency-contact">
+                                    <i class="fas fa-phone-alt"></i> Contact Emergency
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Historical Data Section -->
+                <section class="history-section">
+                    <h2>Historical Data</h2>
+                    <div class="chart-container">
+                        <canvas id="history-chart"></canvas>
+                    </div>
+                    <div class="history-controls">
+                        <select id="time-range">
+                            <option value="1">Last 24 Hours</option>
+                            <option value="7">Last 7 Days</option>
+                            <option value="30">Last 30 Days</option>
+                        </select>
+                    </div>
+                </section>
+            </div>
+        </div>
     </div>
-  </main>
 
-  <footer class="site-footer">
-    <div class="container">
-      <div class="footer-content">
-        <div class="footer-section">
-          <h4>CellGuard</h4>
-          <p>Empowering sickle cell patients with advanced monitoring and management tools.</p>
-          <div class="social-links">
-            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
-            <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
-            <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
-            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
-          </div>
-        </div>
-        
-        <div class="footer-section">
-          <h4>Quick Links</h4>
-          <ul class="footer-links">
-            <li><a href="/">Home</a></li>
-            <li><a href="/about">About Us</a></li>
-            <li><a href="/features">Features</a></li>
-            <li><a href="/contact">Contact</a></li>
-          </ul>
-        </div>
-        
-        <div class="footer-section">
-          <h4>Resources</h4>
-          <ul class="footer-links">
-            <li><a href="/library">Knowledge Library</a></li>
-            <li><a href="/research">Research Updates</a></li>
-            <li><a href="/support">Support Groups</a></li>
-            <li><a href="/faq">FAQ</a></li>
-          </ul>
-        </div>
-        
-        <div class="footer-section">
-          <h4>Contact Us</h4>
-          <ul class="footer-links">
-            <li><i class="fas fa-envelope"></i> support@cellguard.com</li>
-            <li><i class="fas fa-phone"></i> +1 (555) 123-4567</li>
-            <li><i class="fas fa-map-marker-alt"></i> 123 Health St, Medical District</li>
-          </ul>
-        </div>
-      </div>
-      
-      <div class="footer-bottom">
-        <p>&copy; 2025 CellGuard. All rights reserved.</p>
-      </div>
-    </div>
-  </footer>
+    <style>
+        /* Navigation Styles */
+        nav {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            margin-right: 0.5rem;
+            font-size: 1.8rem;
+            color: var(--primary);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .nav-link {
+            text-decoration: none;
+            color: var(--text-dark);
+            font-weight: 500;
+            transition: color 0.2s;
+            padding: 0.5rem 0;
+            position: relative;
+        }
+
+        .nav-link.active {
+            color: var(--primary);
+        }
+
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background-color: var(--primary);
+            border-radius: 3px;
+        }
+
+        .nav-link:hover {
+            color: var(--primary);
+        }
+
+        .auth-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .dropdown {
+            position: relative;
+        }
+
+        .dropdown-toggle {
+            background: none;
+            border: none;
+            color: var(--text-dark);
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .dropdown-toggle:hover {
+            color: var(--primary);
+        }
+
+        .dropdown-toggle i {
+            font-size: 1.2rem;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            min-width: 200px;
+            background-color: white;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            padding: 0.5rem 0;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            display: block;
+            padding: 0.75rem 1.25rem;
+            color: var(--text-dark);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .dropdown-item:hover {
+            background-color: var(--primary-light);
+            color: var(--primary);
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background-color: rgba(0, 0, 0, 0.1);
+            margin: 0.5rem 0;
+        }
+
+        .navbar-toggler {
+            border: none;
+            padding: 0.5rem;
+        }
+
+        .navbar-toggler:focus {
+            box-shadow: none;
+        }
+
+        .navbar-toggler-icon {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255, 255, 255, 0.8)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
+        }
+
+        /* Predictions Page Styles */
+        .predictions-page {
+            padding: 2rem 0;
+            background-color: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .prediction-grid {
+            display: grid;
+            gap: 2rem;
+        }
+
+        /* Monitoring Section */
+        .monitoring-section {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .sensor-card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .sensor-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .sensor-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .sensor-header i {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
+
+        .sensor-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+            margin: 0.5rem 0;
+        }
+
+        .sensor-status {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Prediction Section */
+        .prediction-section {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .prediction-card {
+            margin-top: 1.5rem;
+        }
+
+        .prediction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .prediction-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .indicator-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #666;
+        }
+
+        .probability-meter {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            margin: 1.5rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .meter-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background-color: var(--primary);
+            transition: width 0.3s ease;
+        }
+
+        .meter-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .prediction-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        /* History Section */
+        .history-section {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-container {
+            margin: 1.5rem 0;
+            height: 300px;
+        }
+
+        .history-controls {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        #time-range {
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+        }
+
+        /* Status Colors */
+        .status-normal {
+            color: #28a745;
+        }
+
+        .status-warning {
+            color: #ffc107;
+        }
+
+        .status-danger {
+            color: #dc3545;
+        }
+
+        .indicator-normal {
+            background-color: #28a745;
+        }
+
+        .indicator-warning {
+            background-color: #ffc107;
+        }
+
+        .indicator-danger {
+            background-color: #dc3545;
+        }
+
+        /* Button Styles */
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--primary-light);
+            transform: translateY(-2px);
+        }
+    </style>
+
+    <script>
+        // Initialize Chart
+        const ctx = document.getElementById('history-chart').getContext('2d');
+        const historyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'GSR',
+                        data: [],
+                        borderColor: 'rgb(255, 99, 132)',
+                        yAxisID: 'y',
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Temperature',
+                        data: [],
+                        borderColor: 'rgb(255, 159, 64)',
+                        yAxisID: 'y1',
+                        tension: 0.1
+                    },
+                    {
+                        label: 'SpO2',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        yAxisID: 'y2',
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Crisis Probability',
+                        data: [],
+                        borderColor: 'rgb(153, 102, 255)',
+                        yAxisID: 'y3',
+                        tension: 0.1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
+                            text: 'GSR (µS)'
+                        },
+                        min: 0,
+                        max: 5
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Temperature (°C)'
+                        },
+                        min: 35,
+                        max: 39,
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    },
+                    y2: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'SpO2 (%)'
+                        },
+                        min: 85,
+                        max: 100,
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    },
+                    y3: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Crisis Probability'
+                        },
+                        min: 0,
+                        max: 1,
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
+
+        // Update sensor values and status
+        function updateSensorValues(data) {
+            document.getElementById('gsr-value').textContent = data.gsr.toFixed(2);
+            document.getElementById('temp-value').textContent = data.temperature.toFixed(1) + '°C';
+            document.getElementById('spo2-value').textContent = data.spo2.toFixed(1) + '%';
+
+            // Update status indicators
+            updateStatus('gsr', data.gsr, 0.5, 5.0);
+            updateStatus('temp', data.temperature, 35.0, 39.0);
+            updateStatus('spo2', data.spo2, 85, 100);
+        }
+
+        function updateStatus(sensor, value, min, max) {
+            const statusElement = document.getElementById(`${sensor}-status`);
+            const range = max - min;
+            const normalizedValue = (value - min) / range;
+
+            if (normalizedValue < 0.2 || normalizedValue > 0.8) {
+                statusElement.className = 'sensor-status status-danger';
+                statusElement.textContent = 'Critical';
+            } else if (normalizedValue < 0.3 || normalizedValue > 0.7) {
+                statusElement.className = 'sensor-status status-warning';
+                statusElement.textContent = 'Warning';
+            } else {
+                statusElement.className = 'sensor-status status-normal';
+                statusElement.textContent = 'Normal';
+            }
+        }
+
+        // Update crisis prediction
+        function updatePrediction(probability) {
+            const indicator = document.getElementById('crisis-indicator');
+            const dot = indicator.querySelector('.indicator-dot');
+            const text = indicator.querySelector('.indicator-text');
+            const fill = document.getElementById('probability-fill');
+            const probText = document.getElementById('probability-text');
+
+            // Update probability meter
+            fill.style.width = `${probability * 100}%`;
+            probText.textContent = `${(probability * 100).toFixed(1)}%`;
+
+            // Update indicator
+            if (probability > 0.7) {
+                dot.className = 'indicator-dot indicator-danger';
+                text.textContent = 'High Risk';
+            } else if (probability > 0.4) {
+                dot.className = 'indicator-dot indicator-warning';
+                text.textContent = 'Moderate Risk';
+            } else {
+                dot.className = 'indicator-dot indicator-normal';
+                text.textContent = 'Low Risk';
+            }
+        }
+
+        // Start monitoring button handler
+        document.getElementById('start-monitoring').addEventListener('click', function() {
+            // In a real implementation, this would connect to actual sensors
+            // For now, we'll simulate data
+            simulateMonitoring();
+        });
+
+        // Simulate monitoring
+        function simulateMonitoring() {
+            const button = document.getElementById('start-monitoring');
+            if (button.textContent.includes('Start')) {
+                button.innerHTML = '<i class="fas fa-stop"></i> Stop Monitoring';
+                startSimulation();
+            } else {
+                button.innerHTML = '<i class="fas fa-play"></i> Start Monitoring';
+                stopSimulation();
+            }
+        }
+
+        let simulationInterval;
+        function startSimulation() {
+            simulationInterval = setInterval(() => {
+                // Generate random sensor data
+                const data = {
+                    gsr: Math.random() * 4.5 + 0.5,
+                    temperature: Math.random() * 4 + 35,
+                    spo2: Math.random() * 15 + 85
+                };
+
+                // Update sensor values
+                updateSensorValues(data);
+
+                // Get prediction from server
+                fetch('/api/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(data)
+                })
+                .then(response => response.json())
+                .then(result => {
+                    updatePrediction(result.crisis_probability);
+                    
+                    // Update history chart
+                    const now = new Date();
+                    const time = `${now.getHours()}:${now.getMinutes()}`;
+                    
+                    // Add new data point
+                    historyChart.data.labels.push(time);
+                    historyChart.data.datasets[0].data.push(data.gsr);
+                    historyChart.data.datasets[1].data.push(data.temperature);
+                    historyChart.data.datasets[2].data.push(data.spo2);
+                    historyChart.data.datasets[3].data.push(result.crisis_probability);
+                    
+                    // Keep only the most recent 20 points
+                    if (historyChart.data.labels.length > 20) {
+                        historyChart.data.labels.shift();
+                        historyChart.data.datasets.forEach(dataset => dataset.data.shift());
+                    }
+                    
+                    historyChart.update();
+                });
+            }, 2000);
+        }
+
+        function stopSimulation() {
+            clearInterval(simulationInterval);
+        }
+
+        // Emergency contact button handler
+        document.getElementById('emergency-contact').addEventListener('click', function() {
+            window.location.href = '/emergency';
+        });
+
+        // Add JavaScript for dropdown toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const dropdownToggle = document.querySelector('.dropdown-toggle');
+            const dropdownMenu = document.querySelector('.dropdown-menu');
+
+            if (dropdownToggle && dropdownMenu) {
+                dropdownToggle.addEventListener('click', function() {
+                    dropdownMenu.classList.toggle('show');
+                });
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function(event) {
+                    if (!dropdownToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
+                        dropdownMenu.classList.remove('show');
+                    }
+                });
+            }
+        });
+    </script>
 </body>
-</html>
-
-<style>
-  /* Predictions Page Styles */
-  .predictions-page {
-    padding: 2rem 0;
-  }
-
-  .prediction-grid {
-    display: grid;
-    gap: 2rem;
-  }
-
-  /* Monitoring Section */
-  .monitoring-section {
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .sensor-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-top: 1.5rem;
-  }
-
-  .sensor-card {
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    padding: 1.5rem;
-    text-align: center;
-  }
-
-  .sensor-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
-
-  .sensor-header i {
-    font-size: 1.5rem;
-    color: var(--primary);
-  }
-
-  .sensor-value {
-    font-size: 2rem;
-    font-weight: bold;
-    color: #333;
-    margin: 0.5rem 0;
-  }
-
-  .sensor-status {
-    color: #666;
-    font-size: 0.9rem;
-  }
-
-  /* Prediction Section */
-  .prediction-section {
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .prediction-card {
-    margin-top: 1.5rem;
-  }
-
-  .prediction-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-  }
-
-  .prediction-indicator {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .indicator-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background-color: #666;
-  }
-
-  .probability-meter {
-    width: 100%;
-    height: 20px;
-    background-color: #e9ecef;
-    border-radius: 10px;
-    margin: 1.5rem 0;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .meter-fill {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 0%;
-    background-color: var(--primary);
-    transition: width 0.3s ease;
-  }
-
-  .meter-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #fff;
-    font-weight: bold;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  }
-
-  .prediction-actions {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1.5rem;
-  }
-
-  /* History Section */
-  .history-section {
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .chart-container {
-    margin: 1.5rem 0;
-    height: 300px;
-  }
-
-  .history-controls {
-    display: flex;
-    justify-content: flex-end;
-  }
-
-  #time-range {
-    padding: 0.5rem 1rem;
-    border-radius: 5px;
-    border: 1px solid #ddd;
-    background-color: #fff;
-  }
-
-  /* Status Colors */
-  .status-normal {
-    color: #28a745;
-  }
-
-  .status-warning {
-    color: #ffc107;
-  }
-
-  .status-danger {
-    color: #dc3545;
-  }
-
-  .indicator-normal {
-    background-color: #28a745;
-  }
-
-  .indicator-warning {
-    background-color: #ffc107;
-  }
-
-  .indicator-danger {
-    background-color: #dc3545;
-  }
-
-  /* Footer Styles */
-  .site-footer {
-    background-color: #1a1a2e;
-    color: #fff;
-    padding: 4rem 0 2rem;
-    margin-top: 4rem;
-  }
-
-  .footer-content {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 2rem;
-    margin-bottom: 2rem;
-  }
-
-  .footer-section h4 {
-    color: #fff;
-    margin-bottom: 1.5rem;
-    font-size: 1.2rem;
-  }
-
-  .footer-section p {
-    color: #b4b7c9;
-    line-height: 1.6;
-    margin-bottom: 1.5rem;
-  }
-
-  .footer-links {
-    list-style: none;
-    padding: 0;
-  }
-
-  .footer-links li {
-    margin-bottom: 1rem;
-  }
-
-  .footer-links a {
-    color: #b4b7c9;
-    text-decoration: none;
-    transition: color 0.3s;
-  }
-
-  .footer-links a:hover {
-    color: #fff;
-  }
-
-  .footer-links i {
-    margin-right: 0.5rem;
-    color: var(--primary);
-  }
-
-  .social-links {
-    display: flex;
-    gap: 1rem;
-  }
-
-  .social-link {
-    color: #b4b7c9;
-    font-size: 1.2rem;
-    transition: color 0.3s;
-  }
-
-  .social-link:hover {
-    color: #fff;
-  }
-
-  .footer-bottom {
-    text-align: center;
-    padding-top: 2rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .footer-bottom p {
-    color: #b4b7c9;
-    margin: 0;
-  }
-</style>
-
-<script>
-  // Initialize Chart
-  const ctx = document.getElementById('history-chart').getContext('2d');
-  const historyChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: 'GSR',
-          data: [],
-          borderColor: 'rgb(255, 99, 132)',
-          yAxisID: 'y',
-          tension: 0.1
-        },
-        {
-          label: 'Temperature',
-          data: [],
-          borderColor: 'rgb(255, 159, 64)',
-          yAxisID: 'y1',
-          tension: 0.1
-        },
-        {
-          label: 'SpO2',
-          data: [],
-          borderColor: 'rgb(75, 192, 192)',
-          yAxisID: 'y2',
-          tension: 0.1
-        },
-        {
-          label: 'Crisis Probability',
-          data: [],
-          borderColor: 'rgb(153, 102, 255)',
-          yAxisID: 'y3',
-          tension: 0.1
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      interaction: {
-        mode: 'index',
-        intersect: false,
-      },
-      scales: {
-        y: {
-          type: 'linear',
-          display: true,
-          position: 'left',
-          title: {
-            display: true,
-            text: 'GSR (µS)'
-          },
-          min: 0,
-          max: 5
-        },
-        y1: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          title: {
-            display: true,
-            text: 'Temperature (°C)'
-          },
-          min: 35,
-          max: 39,
-          grid: {
-            drawOnChartArea: false
-          }
-        },
-        y2: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          title: {
-            display: true,
-            text: 'SpO2 (%)'
-          },
-          min: 85,
-          max: 100,
-          grid: {
-            drawOnChartArea: false
-          }
-        },
-        y3: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          title: {
-            display: true,
-            text: 'Crisis Probability'
-          },
-          min: 0,
-          max: 1,
-          grid: {
-            drawOnChartArea: false
-          }
-        }
-      }
-    }
-  });
-
-  // Update sensor values and status
-  function updateSensorValues(data) {
-    document.getElementById('gsr-value').textContent = data.gsr.toFixed(2);
-    document.getElementById('temp-value').textContent = data.temperature.toFixed(1) + '°C';
-    document.getElementById('spo2-value').textContent = data.spo2.toFixed(1) + '%';
-
-    // Update status indicators
-    updateStatus('gsr', data.gsr, 0.5, 5.0);
-    updateStatus('temp', data.temperature, 35.0, 39.0);
-    updateStatus('spo2', data.spo2, 85, 100);
-  }
-
-  function updateStatus(sensor, value, min, max) {
-    const statusElement = document.getElementById(`${sensor}-status`);
-    const range = max - min;
-    const normalizedValue = (value - min) / range;
-
-    if (normalizedValue < 0.2 || normalizedValue > 0.8) {
-      statusElement.className = 'sensor-status status-danger';
-      statusElement.textContent = 'Critical';
-    } else if (normalizedValue < 0.3 || normalizedValue > 0.7) {
-      statusElement.className = 'sensor-status status-warning';
-      statusElement.textContent = 'Warning';
-    } else {
-      statusElement.className = 'sensor-status status-normal';
-      statusElement.textContent = 'Normal';
-    }
-  }
-
-  // Update crisis prediction
-  function updatePrediction(probability) {
-    const indicator = document.getElementById('crisis-indicator');
-    const dot = indicator.querySelector('.indicator-dot');
-    const text = indicator.querySelector('.indicator-text');
-    const fill = document.getElementById('probability-fill');
-    const probText = document.getElementById('probability-text');
-
-    // Update probability meter
-    fill.style.width = `${probability * 100}%`;
-    probText.textContent = `${(probability * 100).toFixed(1)}%`;
-
-    // Update indicator
-    if (probability > 0.7) {
-      dot.className = 'indicator-dot indicator-danger';
-      text.textContent = 'High Risk';
-    } else if (probability > 0.4) {
-      dot.className = 'indicator-dot indicator-warning';
-      text.textContent = 'Moderate Risk';
-    } else {
-      dot.className = 'indicator-dot indicator-normal';
-      text.textContent = 'Low Risk';
-    }
-  }
-
-  // Start monitoring button handler
-  document.getElementById('start-monitoring').addEventListener('click', function() {
-    // In a real implementation, this would connect to actual sensors
-    // For now, we'll simulate data
-    simulateMonitoring();
-  });
-
-  // Simulate monitoring
-  function simulateMonitoring() {
-    const button = document.getElementById('start-monitoring');
-    if (button.textContent.includes('Start')) {
-      button.innerHTML = '<i class="fas fa-stop"></i> Stop Monitoring';
-      startSimulation();
-    } else {
-      button.innerHTML = '<i class="fas fa-play"></i> Start Monitoring';
-      stopSimulation();
-    }
-  }
-
-  let simulationInterval;
-  function startSimulation() {
-    simulationInterval = setInterval(() => {
-      // Generate random sensor data
-      const data = {
-        gsr: Math.random() * 4.5 + 0.5,
-        temperature: Math.random() * 4 + 35,
-        spo2: Math.random() * 15 + 85
-      };
-
-      // Update sensor values
-      updateSensorValues(data);
-
-      // Get prediction from server
-      fetch('/api/predict', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      })
-      .then(response => response.json())
-      .then(result => {
-        updatePrediction(result.crisis_probability);
-        
-        // Update history chart
-        const now = new Date();
-        const time = `${now.getHours()}:${now.getMinutes()}`;
-        
-        // Add new data point
-        historyChart.data.labels.push(time);
-        historyChart.data.datasets[0].data.push(data.gsr);
-        historyChart.data.datasets[1].data.push(data.temperature);
-        historyChart.data.datasets[2].data.push(data.spo2);
-        historyChart.data.datasets[3].data.push(result.crisis_probability);
-        
-        // Keep only the most recent 20 points
-        if (historyChart.data.labels.length > 20) {
-          historyChart.data.labels.shift();
-          historyChart.data.datasets.forEach(dataset => dataset.data.shift());
-        }
-        
-        historyChart.update();
-      });
-    }, 2000);
-  }
-
-  function stopSimulation() {
-    clearInterval(simulationInterval);
-  }
-
-  // Emergency contact button handler
-  document.getElementById('emergency-contact').addEventListener('click', function() {
-    window.location.href = '/emergency';
-  });
-</script> 
+</html> 
