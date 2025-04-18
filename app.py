@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify, render_template, redirect, url_for, f
 import json
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import joblib
 from flask_sqlalchemy import SQLAlchemy
@@ -10,6 +10,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from crisis_prediction_model import predict_crisis  # Only import the prediction function
 from flask_cors import CORS
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
+from flask_migrate import Migrate
+from models import db, User, SensorReading
 
 
 # Configure the application
@@ -19,12 +21,15 @@ CORS(app)  # Enable CORS for all routes
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///crisis_predictions.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your-secret-key-here'  # Change this to a secure secret key in production
-db = SQLAlchemy(app)
+db.init_app(app)
+migrate = Migrate(app, db)
 
 # Initialize Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = 'login_page'
+login_manager.login_message = 'Please log in to access this page.'
+login_manager.login_message_category = 'info'
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -127,6 +132,25 @@ class Symptom(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
+class SensorReading(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    gsr = db.Column(db.Float, nullable=False)
+    temperature = db.Column(db.Float, nullable=False)
+    spo2 = db.Column(db.Float, nullable=False)
+    crisis_probability = db.Column(db.Float, nullable=False)
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'timestamp': self.timestamp.isoformat(),
+            'gsr': self.gsr,
+            'temperature': self.temperature,
+            'spo2': self.spo2,
+            'crisis_probability': self.crisis_probability
+        }
+
 # Import the prediction function from your model script
 # In a real implementation, you would import from your model file
 # from crisis_prediction_model import predict_crisis, pipeline
@@ -186,7 +210,8 @@ def login():
         if not user or not user.check_password(password):
             return jsonify({'error': 'Invalid email or password'}), 401
             
-        login_user(user)
+        login_user(user, remember=True)
+        print(f"User {user.email} logged in successfully")
         return jsonify({
             'message': 'Login successful',
             'user': {
@@ -198,14 +223,14 @@ def login():
         })
         
     except Exception as e:
-        app.logger.error(f"Login error: {str(e)}")
+        print(f"Login error: {str(e)}")
         return jsonify({'error': 'An error occurred during login'}), 500
 
-@app.route('/api/logout', methods=['POST'])
+@app.route('/logout')
 @login_required
 def logout():
     logout_user()
-    return jsonify({'message': 'Logout successful'})
+    return redirect(url_for('home'))
 
 @app.route('/api/signup', methods=['POST'])
 def api_signup():
@@ -256,6 +281,8 @@ def home():
 @login_required
 def predictions():
     try:
+        print(f"Current user: {current_user}")
+        print(f"User authenticated: {current_user.is_authenticated}")
         print("Attempting to render predictions.html")
         return render_template('predictions.html')
     except Exception as e:
@@ -568,6 +595,42 @@ def knowledge_library():
         print(f"Error rendering knowledge-library.html: {str(e)}")
         print(f"Template path: {app.template_folder}")
         return "Error loading page", 500
+
+@app.route('/api/sensor-readings', methods=['POST'])
+@login_required
+def save_sensor_reading():
+    try:
+        data = request.get_json()
+        reading = SensorReading(
+            user_id=current_user.id,
+            gsr=data['gsr'],
+            temperature=data['temperature'],
+            spo2=data['spo2'],
+            crisis_probability=data['crisis_probability']
+        )
+        db.session.add(reading)
+        db.session.commit()
+        return jsonify({'message': 'Reading saved successfully'}), 201
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/sensor-readings', methods=['GET'])
+@login_required
+def get_sensor_readings():
+    try:
+        time_range = request.args.get('time_range', '1')  # Default to last 24 hours
+        hours = int(time_range) * 24
+        
+        # Get readings within the specified time range
+        readings = SensorReading.query.filter(
+            SensorReading.user_id == current_user.id,
+            SensorReading.timestamp >= datetime.utcnow() - timedelta(hours=hours)
+        ).order_by(SensorReading.timestamp.asc()).all()
+        
+        return jsonify([reading.to_dict() for reading in readings])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 # Make sure templates directory exists
 os.makedirs('templates', exist_ok=True)
