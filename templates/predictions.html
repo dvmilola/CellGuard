@@ -28,11 +28,11 @@
             <div class="auth-buttons">
                 {% if current_user.is_authenticated %}
                     <div class="dropdown">
-                        <button class="btn btn-outline dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                        <button class="btn btn-outline dropdown-toggle" type="button" id="userDropdown">
                             <i class="fas fa-user-circle"></i>
-                            {{ current_user.first_name }}
+                            {{ current_user.name }}
                         </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
+                        <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="/profile">Profile</a></li>
                             <li><a class="dropdown-item" href="/settings">Settings</a></li>
                             <li><hr class="dropdown-divider"></li>
@@ -201,6 +201,7 @@
             gap: 1rem;
         }
 
+        /* Dropdown Styles */
         .dropdown {
             position: relative;
         }
@@ -215,14 +216,17 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            transition: color 0.2s;
         }
 
         .dropdown-toggle:hover {
-            color: var(--primary);
+            color: var(--text-dark);
+            opacity: 0.8;
         }
 
         .dropdown-toggle i {
             font-size: 1.2rem;
+            color: var(--primary);
         }
 
         .dropdown-menu {
@@ -248,11 +252,11 @@
             padding: 0.75rem 1.25rem;
             color: var(--text-dark);
             text-decoration: none;
-            transition: all 0.2s ease;
+            transition: background-color 0.2s;
         }
 
         .dropdown-item:hover {
-            background-color: var(--primary-light);
+            background-color: #f8f9fa;
             color: var(--primary);
         }
 
@@ -741,7 +745,7 @@
             window.location.href = '/emergency';
         });
 
-        // Add JavaScript for dropdown toggle
+        // Dropdown functionality
         document.addEventListener('DOMContentLoaded', function() {
             const dropdownToggle = document.querySelector('.dropdown-toggle');
             const dropdownMenu = document.querySelector('.dropdown-menu');
