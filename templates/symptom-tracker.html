@@ -26,8 +26,23 @@
       </div>
       
       <div class="auth-buttons">
-        <a href="/login" class="btn btn-outline">Log In</a>
-        <a href="/signup" class="btn btn-primary">Sign Up</a>
+        {% if current_user.is_authenticated %}
+            <div class="dropdown">
+                <button class="btn btn-outline dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
+                    <i class="fas fa-user-circle"></i>
+                    {{ current_user.name }}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="/profile">Profile</a></li>
+                    <li><a class="dropdown-item" href="/settings">Settings</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                </ul>
+            </div>
+        {% else %}
+            <a href="/login" class="btn btn-outline">Log In</a>
+            <a href="/signup" class="btn btn-primary">Sign Up</a>
+        {% endif %}
       </div>
     </div>
   </nav>
@@ -238,10 +253,260 @@
       </div>
     </div>
   </footer>
+
+  <script>
+    // Dropdown functionality
+    document.addEventListener('DOMContentLoaded', function() {
+      const dropdownToggle = document.querySelector('.dropdown-toggle');
+      const dropdownMenu = document.querySelector('.dropdown-menu');
+
+      if (dropdownToggle && dropdownMenu) {
+        dropdownToggle.addEventListener('click', function() {
+          dropdownMenu.classList.toggle('show');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+          if (!dropdownToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
+            dropdownMenu.classList.remove('show');
+          }
+        });
+      }
+    });
+
+    // Initialize Symptom History Chart
+    const ctx = document.getElementById('symptom-history-chart').getContext('2d');
+    const symptomChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+        datasets: [
+          {
+            label: 'Pain Level',
+            data: [3, 2, 4, 3, 5, 2, 3],
+            borderColor: 'rgb(255, 99, 132)',
+            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+            tension: 0.4,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          tooltip: {
+            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+            padding: 12,
+            titleFont: {
+              size: 14,
+              weight: 'bold'
+            },
+            bodyFont: {
+              size: 13
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            max: 10,
+            title: {
+              display: true,
+              text: 'Pain Level'
+            }
+          }
+        }
+      }
+    });
+
+    // Date Navigation
+    const prevDayBtn = document.getElementById('prev-day');
+    const nextDayBtn = document.getElementById('next-day');
+    const currentDateEl = document.getElementById('current-date');
+
+    let currentDate = new Date();
+
+    function updateDateDisplay() {
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      currentDateEl.textContent = currentDate.toLocaleDateString('en-US', options);
+    }
+
+    prevDayBtn.addEventListener('click', () => {
+      currentDate.setDate(currentDate.getDate() - 1);
+      updateDateDisplay();
+    });
+
+    nextDayBtn.addEventListener('click', () => {
+      currentDate.setDate(currentDate.getDate() + 1);
+      updateDateDisplay();
+    });
+
+    // Save Symptoms
+    document.getElementById('save-symptoms').addEventListener('click', () => {
+      const painLevel = document.getElementById('pain-level').value;
+      const symptoms = Array.from(document.querySelectorAll('input[name="symptoms"]:checked'))
+        .map(checkbox => checkbox.value);
+      const notes = document.getElementById('symptom-notes').value;
+
+      // In a real implementation, this would save to the database
+      console.log('Saving symptoms:', { painLevel, symptoms, notes });
+
+      // Show success message
+      alert('Symptoms saved successfully!');
+    });
+
+    // History Range Selector
+    document.getElementById('history-range').addEventListener('change', function(e) {
+      const days = parseInt(e.target.value);
+      // In a real implementation, this would fetch new data based on the selected time range
+      console.log('Time range changed:', days);
+      
+      // For demo purposes, we'll just update the chart with some random data
+      const newData = Array.from({length: days}, () => Math.floor(Math.random() * 6));
+      symptomChart.data.labels = Array.from({length: days}, (_, i) => `Day ${i + 1}`);
+      symptomChart.data.datasets[0].data = newData;
+      symptomChart.update();
+    });
+  </script>
 </body>
 </html>
 
 <style>
+  /* Navigation Styles */
+  nav {
+    background-color: white;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    padding: 1rem 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .nav-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: var(--primary);
+    text-decoration: none;
+  }
+
+  .logo-icon {
+    margin-right: 0.5rem;
+    font-size: 1.8rem;
+    color: var(--primary);
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 2rem;
+  }
+
+  .nav-link {
+    text-decoration: none;
+    color: var(--text-dark);
+    font-weight: 500;
+    transition: color 0.2s;
+    padding: 0.5rem 0;
+    position: relative;
+  }
+
+  .nav-link.active {
+    color: var(--primary);
+  }
+
+  .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background-color: var(--primary);
+    border-radius: 3px;
+  }
+
+  .nav-link:hover {
+    color: var(--primary);
+  }
+
+  .auth-buttons {
+    display: flex;
+    gap: 1rem;
+  }
+
+  /* Dropdown Styles */
+  .dropdown {
+    position: relative;
+  }
+
+  .dropdown-toggle {
+    background: none;
+    border: none;
+    color: var(--text-dark);
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.2s;
+  }
+
+  .dropdown-toggle:hover {
+    color: var(--text-dark);
+    opacity: 0.8;
+  }
+
+  .dropdown-toggle i {
+    font-size: 1.2rem;
+    color: var(--primary);
+  }
+
+  .dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 200px;
+    background-color: white;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 0.5rem 0;
+    margin-top: 0.5rem;
+    display: none;
+  }
+
+  .dropdown-menu.show {
+    display: block;
+  }
+
+  .dropdown-item {
+    display: block;
+    padding: 0.75rem 1.25rem;
+    color: var(--text-dark);
+    text-decoration: none;
+    transition: background-color 0.2s;
+  }
+
+  .dropdown-item:hover {
+    background-color: #f8f9fa;
+    color: var(--primary);
+  }
+
+  .dropdown-divider {
+    height: 1px;
+    background-color: rgba(0, 0, 0, 0.1);
+    margin: 0.5rem 0;
+  }
+
   /* Symptom Tracker Page Styles */
   .symptom-tracker-page {
     padding: 2rem 0;
@@ -548,101 +813,4 @@
       justify-content: center;
     }
   }
-</style>
-
-<script>
-  // Initialize Symptom History Chart
-  const ctx = document.getElementById('symptom-history-chart').getContext('2d');
-  const symptomChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      datasets: [
-        {
-          label: 'Pain Level',
-          data: [3, 2, 4, 3, 5, 2, 3],
-          borderColor: 'rgb(255, 99, 132)',
-          backgroundColor: 'rgba(255, 99, 132, 0.1)',
-          tension: 0.4,
-          fill: true
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      plugins: {
-        tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          padding: 12,
-          titleFont: {
-            size: 14,
-            weight: 'bold'
-          },
-          bodyFont: {
-            size: 13
-          }
-        }
-      },
-      scales: {
-        y: {
-          beginAtZero: true,
-          max: 10,
-          title: {
-            display: true,
-            text: 'Pain Level'
-          }
-        }
-      }
-    }
-  });
-
-  // Date Navigation
-  const prevDayBtn = document.getElementById('prev-day');
-  const nextDayBtn = document.getElementById('next-day');
-  const currentDateEl = document.getElementById('current-date');
-
-  let currentDate = new Date();
-
-  function updateDateDisplay() {
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    currentDateEl.textContent = currentDate.toLocaleDateString('en-US', options);
-  }
-
-  prevDayBtn.addEventListener('click', () => {
-    currentDate.setDate(currentDate.getDate() - 1);
-    updateDateDisplay();
-  });
-
-  nextDayBtn.addEventListener('click', () => {
-    currentDate.setDate(currentDate.getDate() + 1);
-    updateDateDisplay();
-  });
-
-  // Save Symptoms
-  document.getElementById('save-symptoms').addEventListener('click', () => {
-    const painLevel = document.getElementById('pain-level').value;
-    const symptoms = Array.from(document.querySelectorAll('input[name="symptoms"]:checked'))
-      .map(checkbox => checkbox.value);
-    const notes = document.getElementById('symptom-notes').value;
-
-    // In a real implementation, this would save to the database
-    console.log('Saving symptoms:', { painLevel, symptoms, notes });
-
-    // Show success message
-    alert('Symptoms saved successfully!');
-  });
-
-  // History Range Selector
-  document.getElementById('history-range').addEventListener('change', function(e) {
-    const days = parseInt(e.target.value);
-    // In a real implementation, this would fetch new data based on the selected time range
-    console.log('Time range changed:', days);
-    
-    // For demo purposes, we'll just update the chart with some random data
-    const newData = Array.from({length: days}, () => Math.floor(Math.random() * 6));
-    symptomChart.data.labels = Array.from({length: days}, (_, i) => `Day ${i + 1}`);
-    symptomChart.data.datasets[0].data = newData;
-    symptomChart.update();
-  });
-</script> 
+</style> 
