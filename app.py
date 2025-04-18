@@ -233,17 +233,21 @@ def api_signup():
 @app.route('/')
 def home():
     try:
+        print("Attempting to render index.html")
         return render_template('index.html')
     except Exception as e:
-        print(f"Error rendering template: {str(e)}")
+        print(f"Error rendering index.html: {str(e)}")
+        print(f"Template path: {app.template_folder}")
         return "Error loading page", 500
 
 @app.route('/predictions')
 def predictions():
     try:
+        print("Attempting to render predictions.html")
         return render_template('predictions.html')
     except Exception as e:
-        print(f"Error rendering template: {str(e)}")
+        print(f"Error rendering predictions.html: {str(e)}")
+        print(f"Template path: {app.template_folder}")
         return "Error loading page", 500
 
 @app.route('/emergency')
@@ -290,26 +294,32 @@ def settings():
 
 @app.route('/medication')
 def medications():
-    # In a real implementation, this would fetch the user's medications from the database
-    # For now, we'll use sample data
-    sample_medications = [
-        {
-            'name': 'Hydroxyurea',
-            'dosage': '500mg',
-            'frequency': 'Once daily',
-            'start_date': '2024-01-15',
-            'is_active': True
-        },
-        {
-            'name': 'Folic Acid',
-            'dosage': '1mg',
-            'frequency': 'Once daily',
-            'start_date': '2024-01-15',
-            'is_active': True
-        }
-    ]
-    
-    return render_template('medications.html', medications=sample_medications)
+    try:
+        print("Attempting to render medications.html")
+        # In a real implementation, this would fetch the user's medications from the database
+        # For now, we'll use sample data
+        sample_medications = [
+            {
+                'name': 'Hydroxyurea',
+                'dosage': '500mg',
+                'frequency': 'Once daily',
+                'start_date': '2024-01-15',
+                'is_active': True
+            },
+            {
+                'name': 'Folic Acid',
+                'dosage': '1mg',
+                'frequency': 'Once daily',
+                'start_date': '2024-01-15',
+                'is_active': True
+            }
+        ]
+        
+        return render_template('medications.html', medications=sample_medications)
+    except Exception as e:
+        print(f"Error rendering medications.html: {str(e)}")
+        print(f"Template path: {app.template_folder}")
+        return "Error loading page", 500
 
 @app.route('/api/medications', methods=['GET'])
 def get_medications():
@@ -505,7 +515,13 @@ def add_contact():
 
 @app.route('/symptom-tracker')
 def symptom_tracker():
-    return render_template('symptom-tracker.html')
+    try:
+        print("Attempting to render symptom-tracker.html")
+        return render_template('symptom-tracker.html')
+    except Exception as e:
+        print(f"Error rendering symptom-tracker.html: {str(e)}")
+        print(f"Template path: {app.template_folder}")
+        return "Error loading page", 500
 
 @app.route('/api/symptoms', methods=['POST'])
 def save_symptoms():
@@ -546,7 +562,13 @@ def get_symptoms():
 
 @app.route('/knowledge-library')
 def knowledge_library():
-    return render_template('knowledge-library.html')
+    try:
+        print("Attempting to render knowledge-library.html")
+        return render_template('knowledge-library.html')
+    except Exception as e:
+        print(f"Error rendering knowledge-library.html: {str(e)}")
+        print(f"Template path: {app.template_folder}")
+        return "Error loading page", 500
 
 # Make sure templates directory exists
 os.makedirs('templates', exist_ok=True)
