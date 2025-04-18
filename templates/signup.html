@@ -86,6 +86,20 @@
               </div>
               
               <button type="submit" class="btn btn-primary" style="width: 100%">Create Account</button>
+              
+              <div class="social-login">
+                <div class="divider">
+                  <span>or continue with</span>
+                </div>
+                <div class="social-buttons">
+                  <button type="button" class="btn btn-social google">
+                    <i class="fab fa-google"></i> Google
+                  </button>
+                  <button type="button" class="btn btn-social apple">
+                    <i class="fab fa-apple"></i> Apple
+                  </button>
+                </div>
+              </div>
             </form>
             
             <div class="auth-footer">
@@ -134,52 +148,31 @@
     </section>
   </main>
   
-  <footer class="site-footer">
+  <footer class="footer">
     <div class="container">
       <div class="footer-content">
         <div class="footer-section">
-          <h4>CellGuard</h4>
-          <p>Empowering sickle cell patients with advanced monitoring and management tools.</p>
-          <div class="social-links">
-            <a href="#" class="social-link"><i class="fab fa-twitter"></i></a>
-            <a href="#" class="social-link"><i class="fab fa-facebook"></i></a>
-            <a href="#" class="social-link"><i class="fab fa-instagram"></i></a>
-            <a href="#" class="social-link"><i class="fab fa-linkedin"></i></a>
-          </div>
+          <h3>CellGuard</h3>
+          <p>Empowering individuals with sickle cell disease through advanced monitoring and management tools.</p>
         </div>
-        
         <div class="footer-section">
-          <h4>Quick Links</h4>
-          <ul class="footer-links">
+          <h3>Quick Links</h3>
+          <ul>
             <li><a href="/">Home</a></li>
-            <li><a href="/about">About Us</a></li>
-            <li><a href="/features">Features</a></li>
-            <li><a href="/contact">Contact</a></li>
-          </ul>
-        </div>
-        
-        <div class="footer-section">
-          <h4>Resources</h4>
-          <ul class="footer-links">
+            <li><a href="/predictions">Crisis Prediction</a></li>
+            <li><a href="/medication">Medication</a></li>
+            <li><a href="/symptom-tracker">Symptom Tracker</a></li>
             <li><a href="/knowledge-library">Knowledge Library</a></li>
-            <li><a href="/research">Research Updates</a></li>
-            <li><a href="/support">Support Groups</a></li>
-            <li><a href="/faq">FAQ</a></li>
           </ul>
         </div>
-        
         <div class="footer-section">
-          <h4>Contact Us</h4>
-          <ul class="footer-links">
-            <li><i class="fas fa-envelope"></i> support@cellguard.com</li>
-            <li><i class="fas fa-phone"></i> +1 (555) 123-4567</li>
-            <li><i class="fas fa-map-marker-alt"></i> 123 Health St, Medical District</li>
-          </ul>
+          <h3>Contact</h3>
+          <p>Email: info@cellguard.com</p>
+          <p>Phone: +1 (555) 123-4567</p>
         </div>
       </div>
-      
       <div class="footer-bottom">
-        <p>&copy; 2025 CellGuard. All rights reserved.</p>
+        <p>&copy; 2024 CellGuard. All rights reserved.</p>
       </div>
     </div>
   </footer>
@@ -307,9 +300,72 @@
       color: #666;
     }
 
+    .social-login {
+      margin-top: 2rem;
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      text-align: center;
+      margin: 1.5rem 0;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      border-bottom: 1px solid #ddd;
+    }
+
+    .divider span {
+      padding: 0 1rem;
+      color: #666;
+      font-size: 0.9rem;
+    }
+
+    .social-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .btn-social {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      background: white;
+      color: #333;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .btn-social:hover {
+      background: #f5f5f5;
+    }
+
+    .btn-social.google {
+      color: #DB4437;
+    }
+
+    .btn-social.apple {
+      color: #000;
+    }
+
+    .btn-social i {
+      font-size: 1.2rem;
+    }
+
     @media (max-width: 768px) {
       .auth-container {
         grid-template-columns: 1fr;
+      }
+      .social-buttons {
+        flex-direction: column;
       }
     }
   </style>
@@ -319,6 +375,8 @@
       const signupForm = document.getElementById('signup-form');
       const passwordInput = document.getElementById('password');
       const confirmPasswordInput = document.getElementById('confirm-password');
+      const googleBtn = document.querySelector('.btn-social.google');
+      const appleBtn = document.querySelector('.btn-social.apple');
       
       // Password validation
       function validatePassword(password) {
@@ -392,6 +450,16 @@
         } else {
           helpText.style.color = '#666';
         }
+      });
+
+      // Google login handler
+      googleBtn.addEventListener('click', function() {
+        window.location.href = '/login/google';
+      });
+
+      // Apple login handler
+      appleBtn.addEventListener('click', function() {
+        window.location.href = '/login/apple';
       });
     });
   </script>
