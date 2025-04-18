@@ -1,179 +1,78 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Login - CellGuard</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
-</head>
-<body>
-  <nav>
-    <div class="container">
-      <div class="nav-container">
-        <a href="/" class="logo">
-          <i class="fas fa-shield-alt logo-icon"></i>
-          CellGuard
-        </a>
-        <div class="nav-links">
-          <a href="/" class="nav-link">Home</a>
-          <a href="/predictions" class="nav-link">Crisis Prediction</a>
-          <a href="/medication" class="nav-link">Medication</a>
-          <a href="/symptom-tracker" class="nav-link">Symptom Tracker</a>
-          <a href="/knowledge-library" class="nav-link">Knowledge Library</a>
+{% extends "base.html" %}
+
+{% block title %}Login - CellGuard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow">
+            <div class="card-body p-5">
+                <h2 class="text-center mb-4">Welcome Back</h2>
+                <p class="text-center text-muted mb-4">Login to your CellGuard account to continue managing your health.</p>
+                
+                <form id="loginForm" method="POST" action="{{ url_for('login') }}">
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email address</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
+                        <label class="form-check-label" for="rememberMe">Remember me</label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100 mb-3">
+                        <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                    </button>
+                    
+                    <div class="text-center">
+                        <p class="mb-0">Don't have an account? <a href="/signup">Sign up</a></p>
+                    </div>
+                </form>
+            </div>
         </div>
-        <div class="auth-buttons">
-          <a href="/login" class="btn btn-outline">Log In</a>
-          <a href="/signup" class="btn btn-primary">Sign Up</a>
-        </div>
-      </div>
     </div>
-  </nav>
+</div>
+{% endblock %}
 
-  <main>
-    <section>
-      <div class="container">
-        <div class="auth-container">
-          <div class="auth-card">
-            <div class="auth-header">
-              <h1>Welcome Back</h1>
-              <p>Login to your CellGuard account to continue managing your health.</p>
-            </div>
-            
-            <form id="login-form" class="auth-form" method="POST" action="{{ url_for('login') }}">
-              {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                  {% for category, message in messages %}
-                    <div class="alert alert-{{ category }}">{{ message }}</div>
-                  {% endfor %}
-                {% endif %}
-              {% endwith %}
-              
-              <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" required>
-              </div>
-              
-              <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" required>
-              </div>
-              
-              <div class="form-group">
-                <label class="checkbox-label">
-                  <input type="checkbox" name="rememberMe"> Remember me
-                </label>
-              </div>
-              
-              <button type="submit" class="btn btn-primary" style="width: 100%">Login</button>
-            </form>
-            
-            <div class="auth-footer">
-              <a href="#" id="forgot-password">Forgot Password?</a>
-              <p>Don't have an account? <a href="/signup">Sign Up</a></p>
-            </div>
-          </div>
-          
-          <div class="auth-features">
-            <h3>Why Choose CellGuard?</h3>
-            <div class="feature-list">
-              <div class="feature-item">
-                <i class="fas fa-shield-alt"></i>
-                <div class="feature-content">
-                  <h4>Real-time Monitoring</h4>
-                  <p>Track your vital signs and receive instant alerts for potential crises.</p>
-                </div>
-              </div>
-              <div class="feature-item">
-                <i class="fas fa-pills"></i>
-                <div class="feature-content">
-                  <h4>Medication Management</h4>
-                  <p>Never miss a dose with our smart medication tracking system.</p>
-                </div>
-              </div>
-              <div class="feature-item">
-                <i class="fas fa-book-medical"></i>
-                <div class="feature-content">
-                  <h4>Knowledge Library</h4>
-                  <p>Access comprehensive resources about sickle cell disease management.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <div class="container">
-      <div class="footer-content">
-        <div class="footer-section">
-          <h3>CellGuard</h3>
-          <p>Empowering individuals with sickle cell disease through advanced monitoring and management tools.</p>
-        </div>
-        <div class="footer-section">
-          <h3>Quick Links</h3>
-          <ul>
-            <li><a href="/">Home</a></li>
-            <li><a href="/predictions">Crisis Prediction</a></li>
-            <li><a href="/medication">Medication</a></li>
-            <li><a href="/symptom-tracker">Symptom Tracker</a></li>
-            <li><a href="/knowledge-library">Knowledge Library</a></li>
-          </ul>
-        </div>
-        <div class="footer-section">
-          <h3>Contact</h3>
-          <p>Email: info@cellguard.com</p>
-          <p>Phone: +1 (555) 123-4567</p>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <p>&copy; 2024 CellGuard. All rights reserved.</p>
-      </div>
-    </div>
-  </footer>
-
-  <style>
-    /* ... existing styles ... */
+{% block extra_js %}
+<script>
+document.getElementById('loginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
     
-    .alert {
-      padding: 1rem;
-      margin-bottom: 1rem;
-      border-radius: 4px;
-      font-weight: 500;
-    }
+    const formData = new FormData(this);
     
-    .alert-error {
-      background-color: #fee2e2;
-      color: #dc2626;
-      border: 1px solid #fecaca;
-    }
-    
-    .alert-success {
-      background-color: #dcfce7;
-      color: #16a34a;
-      border: 1px solid #bbf7d0;
-    }
-  </style>
-
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const loginForm = document.getElementById('login-form');
-      
-      loginForm.addEventListener('submit', function(e) {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        
-        // Validation
-        if (!email || !password) {
-          e.preventDefault();
-          alert('Please fill in all required fields');
-          return;
+    fetch('{{ url_for("login") }}', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = data.redirect || '{{ url_for("home") }}';
+        } else {
+            alert(data.message || 'Login failed. Please try again.');
         }
-      });
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
     });
-  </script>
-</body>
-</html> 
+});
+</script>
+{% endblock %} 
