@@ -9,6 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
 from crisis_prediction_model import predict_crisis  # Only import the prediction function
 from flask_cors import CORS
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
 
 # Configure the application
@@ -19,6 +20,15 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///crisis_predictions.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your-secret-key-here'  # Change this to a secure secret key in production
 db = SQLAlchemy(app)
+
+# Initialize Flask-Login
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login_page'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
 
 # Define the database models
 class Prediction(db.Model):
@@ -41,7 +51,7 @@ class Prediction(db.Model):
             'crisis_probability': self.crisis_probability
         }
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
@@ -163,25 +173,22 @@ def signup_page():
     return render_template('signup.html')
 
 @app.route('/api/login', methods=['POST'])
-def api_login():
-    data = request.get_json()
-    email = data.get('email')
-    password = data.get('password')
-    remember_me = data.get('rememberMe', False)
-    
-    user = User.query.filter_by(email=email).first()
-    
-    if user and user.check_password(password):
-        session['user_id'] = user.id
-        session['user_name'] = user.name
-        session['user_type'] = user.user_type
+def login():
+    try:
+        data = request.get_json()
+        email = data.get('email')
+        password = data.get('password')
         
-        if remember_me:
-            session.permanent = True
+        if not email or not password:
+            return jsonify({'error': 'Email and password are required'}), 400
             
+        user = User.query.filter_by(email=email).first()
+        if not user or not user.check_password(password):
+            return jsonify({'error': 'Invalid email or password'}), 401
+            
+        login_user(user)
         return jsonify({
-            'success': True,
-            'message': 'Login successful!',
+            'message': 'Login successful',
             'user': {
                 'id': user.id,
                 'name': user.name,
@@ -189,11 +196,16 @@ def api_login():
                 'user_type': user.user_type
             }
         })
-    else:
-        return jsonify({
-            'success': False,
-            'message': 'Invalid email or password'
-        }), 401
+        
+    except Exception as e:
+        app.logger.error(f"Login error: {str(e)}")
+        return jsonify({'error': 'An error occurred during login'}), 500
+
+@app.route('/api/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'message': 'Logout successful'})
 
 @app.route('/api/signup', methods=['POST'])
 def api_signup():
@@ -241,6 +253,7 @@ def home():
         return "Error loading page", 500
 
 @app.route('/predictions')
+@login_required
 def predictions():
     try:
         print("Attempting to render predictions.html")
@@ -251,31 +264,22 @@ def predictions():
         return "Error loading page", 500
 
 @app.route('/emergency')
+@login_required
 def emergency():
-    if 'user_id' not in session:
-        flash('Please login to access this page', 'warning')
-        return redirect(url_for('login'))
-    
-    contacts = EmergencyContact.query.filter_by(user_id=session['user_id']).all()
+    contacts = EmergencyContact.query.filter_by(user_id=current_user.id).all()
     return render_template('emergency.html', contacts=contacts)
 
 @app.route('/profile')
+@login_required
 def profile():
-    if 'user_id' not in session:
-        flash('Please login to access this page', 'warning')
-        return redirect(url_for('login'))
-    
-    user = User.query.get(session['user_id'])
-    providers = HealthcareProvider.query.filter_by(user_id=session['user_id']).all()
+    user = current_user
+    providers = HealthcareProvider.query.filter_by(user_id=current_user.id).all()
     return render_template('profile.html', user=user, providers=providers)
 
 @app.route('/provider')
+@login_required
 def provider():
-    if 'user_id' not in session:
-        flash('Please login to access this page', 'warning')
-        return redirect(url_for('login'))
-    
-    if session['user_type'] != 'healthcare-provider':
+    if current_user.user_type != 'healthcare-provider':
         flash('Access denied. This page is for healthcare providers only.', 'error')
         return redirect(url_for('home'))
     
@@ -284,15 +288,13 @@ def provider():
     return render_template('provider.html', predictions=recent_predictions)
 
 @app.route('/settings')
+@login_required
 def settings():
-    if 'user_id' not in session:
-        flash('Please login to access this page', 'warning')
-        return redirect(url_for('login'))
-    
-    user = User.query.get(session['user_id'])
+    user = current_user
     return render_template('settings.html', user=user)
 
 @app.route('/medication')
+@login_required
 def medications():
     try:
         print("Attempting to render medications.html")
@@ -343,6 +345,7 @@ def get_medications():
     ])
 
 @app.route('/api/medications/schedule', methods=['GET'])
+@login_required
 def get_medication_schedule():
     # In a real implementation, this would fetch the schedule from the database
     # For now, we'll return sample data
@@ -400,6 +403,7 @@ def get_medication_history():
 
 # API routes
 @app.route('/api/predict', methods=['POST'])
+@login_required
 def api_predict():
     try:
         # Get data from request
@@ -415,6 +419,7 @@ def api_predict():
         
         # Store prediction in database
         prediction = Prediction(
+            user_id=current_user.id,
             timestamp=datetime.fromisoformat(result['timestamp']),
             gsr=gsr,
             temperature=temperature,
@@ -471,11 +476,9 @@ def get_stats():
 
 # Emergency contact API routes
 @app.route('/api/contacts', methods=['GET'])
+@login_required
 def get_contacts():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Authentication required'}), 401
-    
-    contacts = EmergencyContact.query.filter_by(user_id=session['user_id']).all()
+    contacts = EmergencyContact.query.filter_by(user_id=current_user.id).all()
     return jsonify([{
         'id': contact.id,
         'name': contact.name,
@@ -486,14 +489,12 @@ def get_contacts():
     } for contact in contacts])
 
 @app.route('/api/contacts', methods=['POST'])
+@login_required
 def add_contact():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Authentication required'}), 401
-    
     data = request.get_json()
     
     new_contact = EmergencyContact(
-        user_id=session['user_id'],
+        user_id=current_user.id,
         name=data.get('name'),
         contact_type=data.get('type'),
         phone=data.get('phone'),
@@ -514,6 +515,7 @@ def add_contact():
     })
 
 @app.route('/symptom-tracker')
+@login_required
 def symptom_tracker():
     try:
         print("Attempting to render symptom-tracker.html")
@@ -524,14 +526,12 @@ def symptom_tracker():
         return "Error loading page", 500
 
 @app.route('/api/symptoms', methods=['POST'])
+@login_required
 def save_symptoms():
-    if not session.get('user_id'):
-        return jsonify({'error': 'Not authenticated'}), 401
-        
     data = request.json
     try:
         new_symptom = Symptom(
-            user_id=session['user_id'],
+            user_id=current_user.id,
             date=datetime.strptime(data['date'], '%Y-%m-%d').date(),
             pain_level=data['pain_level'],
             symptoms=json.dumps(data['symptoms']),
@@ -544,12 +544,10 @@ def save_symptoms():
         return jsonify({'error': str(e)}), 400
 
 @app.route('/api/symptoms', methods=['GET'])
+@login_required
 def get_symptoms():
-    if not session.get('user_id'):
-        return jsonify({'error': 'Not authenticated'}), 401
-        
     try:
-        symptoms = Symptom.query.filter_by(user_id=session['user_id']).order_by(Symptom.date.desc()).all()
+        symptoms = Symptom.query.filter_by(user_id=current_user.id).order_by(Symptom.date.desc()).all()
         return jsonify([{
             'id': s.id,
             'date': s.date.isoformat(),
@@ -561,6 +559,7 @@ def get_symptoms():
         return jsonify({'error': str(e)}), 400
 
 @app.route('/knowledge-library')
+@login_required
 def knowledge_library():
     try:
         print("Attempting to render knowledge-library.html")
