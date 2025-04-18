@@ -631,22 +631,32 @@
             const fill = document.getElementById('probability-fill');
             const probText = document.getElementById('probability-text');
 
+            // Ensure probability is a valid number
+            probability = parseFloat(probability) || 0;
+
             // Update probability meter
-            fill.style.width = `${probability * 100}%`;
-            probText.textContent = `${(probability * 100).toFixed(1)}%`;
+            const percentage = Math.min(Math.max(probability * 100, 0), 100);
+            fill.style.width = `${percentage}%`;
+            probText.textContent = `${percentage.toFixed(1)}%`;
 
             // Update indicator
             if (probability > 0.7) {
                 dot.className = 'indicator-dot indicator-danger';
                 text.textContent = 'High Risk';
+                fill.style.backgroundColor = '#dc3545';
             } else if (probability > 0.4) {
                 dot.className = 'indicator-dot indicator-warning';
                 text.textContent = 'Moderate Risk';
+                fill.style.backgroundColor = '#ffc107';
             } else {
                 dot.className = 'indicator-dot indicator-normal';
                 text.textContent = 'Low Risk';
+                fill.style.backgroundColor = '#28a745';
             }
         }
+
+        // Initialize with default values
+        updatePrediction(0);
 
         // Start monitoring button handler
         document.getElementById('start-monitoring').addEventListener('click', function() {
@@ -680,37 +690,45 @@
                 // Update sensor values
                 updateSensorValues(data);
 
-                // Get prediction from server
-                fetch('/api/predict', {
+                // Calculate crisis probability based on sensor values
+                const gsrRisk = (data.gsr - 0.5) / 4.5;
+                const tempRisk = Math.abs(data.temperature - 37) / 2;
+                const spo2Risk = (100 - data.spo2) / 15;
+                const crisisProbability = (gsrRisk * 0.4 + tempRisk * 0.3 + spo2Risk * 0.3);
+                
+                // Update prediction with calculated probability
+                updatePrediction(crisisProbability);
+
+                // Save reading to database
+                fetch('/api/sensor-readings', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(data)
-                })
-                .then(response => response.json())
-                .then(result => {
-                    updatePrediction(result.crisis_probability);
-                    
-                    // Update history chart
-                    const now = new Date();
-                    const time = `${now.getHours()}:${now.getMinutes()}`;
-                    
-                    // Add new data point
-                    historyChart.data.labels.push(time);
-                    historyChart.data.datasets[0].data.push(data.gsr);
-                    historyChart.data.datasets[1].data.push(data.temperature);
-                    historyChart.data.datasets[2].data.push(data.spo2);
-                    historyChart.data.datasets[3].data.push(result.crisis_probability);
-                    
-                    // Keep only the most recent 20 points
-                    if (historyChart.data.labels.length > 20) {
-                        historyChart.data.labels.shift();
-                        historyChart.data.datasets.forEach(dataset => dataset.data.shift());
-                    }
-                    
-                    historyChart.update();
-                });
+                    body: JSON.stringify({
+                        ...data,
+                        crisis_probability: crisisProbability
+                    })
+                }).catch(error => console.error('Error saving reading:', error));
+                
+                // Update history chart
+                const now = new Date();
+                const time = `${now.getHours()}:${now.getMinutes()}`;
+                
+                // Add new data point
+                historyChart.data.labels.push(time);
+                historyChart.data.datasets[0].data.push(data.gsr);
+                historyChart.data.datasets[1].data.push(data.temperature);
+                historyChart.data.datasets[2].data.push(data.spo2);
+                historyChart.data.datasets[3].data.push(crisisProbability);
+                
+                // Keep only the most recent 20 points
+                if (historyChart.data.labels.length > 20) {
+                    historyChart.data.labels.shift();
+                    historyChart.data.datasets.forEach(dataset => dataset.data.shift());
+                }
+                
+                historyChart.update();
             }, 2000);
         }
 
@@ -741,6 +759,39 @@
                 });
             }
         });
+
+        // Load historical data when page loads
+        function loadHistoricalData() {
+            const timeRange = document.getElementById('time-range').value;
+            fetch(`/api/sensor-readings?time_range=${timeRange}`)
+                .then(response => response.json())
+                .then(readings => {
+                    // Clear existing data
+                    historyChart.data.labels = [];
+                    historyChart.data.datasets.forEach(dataset => dataset.data = []);
+                    
+                    // Add historical data points
+                    readings.forEach(reading => {
+                        const date = new Date(reading.timestamp);
+                        const time = `${date.getHours()}:${date.getMinutes()}`;
+                        
+                        historyChart.data.labels.push(time);
+                        historyChart.data.datasets[0].data.push(reading.gsr);
+                        historyChart.data.datasets[1].data.push(reading.temperature);
+                        historyChart.data.datasets[2].data.push(reading.spo2);
+                        historyChart.data.datasets[3].data.push(reading.crisis_probability);
+                    });
+                    
+                    historyChart.update();
+                })
+                .catch(error => console.error('Error loading historical data:', error));
+        }
+
+        // Load historical data when time range changes
+        document.getElementById('time-range').addEventListener('change', loadHistoricalData);
+
+        // Load initial historical data
+        document.addEventListener('DOMContentLoaded', loadHistoricalData);
     </script>
 </body>
 </html> 
