@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body>
@@ -28,11 +29,11 @@
             <div class="auth-buttons">
                 {% if current_user.is_authenticated %}
                     <div class="dropdown">
-                        <button class="btn btn-outline dropdown-toggle" type="button" id="userDropdown">
+                        <button class="btn btn-outline dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
                             <i class="fas fa-user-circle"></i>
-                            {{ current_user.name }}
+                            {{ current_user.first_name }}
                         </button>
-                        <ul class="dropdown-menu">
+                        <ul class="dropdown-menu dropdown-menu-end">
                             <li><a class="dropdown-item" href="/profile">Profile</a></li>
                             <li><a class="dropdown-item" href="/settings">Settings</a></li>
                             <li><hr class="dropdown-divider"></li>
@@ -201,7 +202,6 @@
             gap: 1rem;
         }
 
-        /* Dropdown Styles */
         .dropdown {
             position: relative;
         }
@@ -216,17 +216,14 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            transition: color 0.2s;
         }
 
         .dropdown-toggle:hover {
-            color: var(--text-dark);
-            opacity: 0.8;
+            color: var(--primary);
         }
 
         .dropdown-toggle i {
             font-size: 1.2rem;
-            color: var(--primary);
         }
 
         .dropdown-menu {
@@ -252,11 +249,11 @@
             padding: 0.75rem 1.25rem;
             color: var(--text-dark);
             text-decoration: none;
-            transition: background-color 0.2s;
+            transition: all 0.2s ease;
         }
 
         .dropdown-item:hover {
-            background-color: #f8f9fa;
+            background-color: var(--primary-light);
             color: var(--primary);
         }
 
@@ -496,7 +493,33 @@
     </style>
 
     <script>
-        // Initialize Chart
+        // Initialize Socket.IO connection
+        const socket = io('http://127.0.0.1:5001', {
+            transports: ['websocket', 'polling'],
+            reconnection: true,
+            reconnectionAttempts: 5
+        });
+        
+        socket.on('connect', function() {
+            console.log('Socket.IO connection established');
+        });
+        
+        socket.on('sensor_update', function(data) {
+            console.log('Received sensor update:', data);
+            updateSensorValues(data);
+            updatePrediction(data.crisis_probability);
+            updateHistoryChart(data);
+        });
+        
+        socket.on('connect_error', function(error) {
+            console.error('Socket.IO connection error:', error);
+        });
+        
+        socket.on('disconnect', function(reason) {
+            console.log('Socket.IO disconnected:', reason);
+        });
+
+        // Initialize the chart
         const ctx = document.getElementById('history-chart').getContext('2d');
         const historyChart = new Chart(ctx, {
             type: 'line',
@@ -507,39 +530,35 @@
                         label: 'GSR',
                         data: [],
                         borderColor: 'rgb(255, 99, 132)',
-                        yAxisID: 'y',
-                        tension: 0.1
+                        tension: 0.1,
+                        yAxisID: 'y'
                     },
                     {
                         label: 'Temperature',
                         data: [],
-                        borderColor: 'rgb(255, 159, 64)',
-                        yAxisID: 'y1',
-                        tension: 0.1
+                        borderColor: 'rgb(54, 162, 235)',
+                        tension: 0.1,
+                        yAxisID: 'y1'
                     },
                     {
                         label: 'SpO2',
                         data: [],
                         borderColor: 'rgb(75, 192, 192)',
-                        yAxisID: 'y2',
-                        tension: 0.1
+                        tension: 0.1,
+                        yAxisID: 'y2'
                     },
                     {
                         label: 'Crisis Probability',
                         data: [],
-                        borderColor: 'rgb(153, 102, 255)',
-                        yAxisID: 'y3',
-                        tension: 0.1
+                        borderColor: 'rgb(255, 159, 64)',
+                        tension: 0.1,
+                        yAxisID: 'y3'
                     }
                 ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
                 scales: {
                     y: {
                         type: 'linear',
@@ -547,10 +566,8 @@
                         position: 'left',
                         title: {
                             display: true,
-                            text: 'GSR (µS)'
-                        },
-                        min: 0,
-                        max: 5
+                            text: 'GSR'
+                        }
                     },
                     y1: {
                         type: 'linear',
@@ -558,10 +575,8 @@
                         position: 'right',
                         title: {
                             display: true,
-                            text: 'Temperature (°C)'
+                            text: 'Temperature'
                         },
-                        min: 35,
-                        max: 39,
                         grid: {
                             drawOnChartArea: false
                         }
@@ -572,10 +587,8 @@
                         position: 'right',
                         title: {
                             display: true,
-                            text: 'SpO2 (%)'
+                            text: 'SpO2'
                         },
-                        min: 85,
-                        max: 100,
                         grid: {
                             drawOnChartArea: false
                         }
@@ -588,8 +601,6 @@
                             display: true,
                             text: 'Crisis Probability'
                         },
-                        min: 0,
-                        max: 1,
                         grid: {
                             drawOnChartArea: false
                         }
@@ -598,8 +609,31 @@
             }
         });
 
+        // Function to update the chart with new data
+        function updateHistoryChart(data) {
+            const now = new Date();
+            const time = `${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}`;
+            
+            // Add new data point
+            historyChart.data.labels.push(time);
+            historyChart.data.datasets[0].data.push(data.gsr);
+            historyChart.data.datasets[1].data.push(data.temperature);
+            historyChart.data.datasets[2].data.push(data.spo2);
+            historyChart.data.datasets[3].data.push(data.crisis_probability);
+            
+            // Keep only the most recent 20 points
+            if (historyChart.data.labels.length > 20) {
+                historyChart.data.labels.shift();
+                historyChart.data.datasets.forEach(dataset => dataset.data.shift());
+            }
+            
+            // Update the chart
+            historyChart.update('none'); // Use 'none' to prevent animation for real-time updates
+        }
+
         // Update sensor values and status
         function updateSensorValues(data) {
+            console.log('Updating sensor values:', data);
             document.getElementById('gsr-value').textContent = data.gsr.toFixed(2);
             document.getElementById('temp-value').textContent = data.temperature.toFixed(1) + '°C';
             document.getElementById('spo2-value').textContent = data.spo2.toFixed(1) + '%';
@@ -710,29 +744,14 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        ...data,
-                        crisis_probability: crisisProbability
+                        gsr: data.gsr,
+                        temperature: data.temperature,
+                        spo2: data.spo2
                     })
                 }).catch(error => console.error('Error saving reading:', error));
                 
                 // Update history chart
-                const now = new Date();
-                const time = `${now.getHours()}:${now.getMinutes()}`;
-                
-                // Add new data point
-                historyChart.data.labels.push(time);
-                historyChart.data.datasets[0].data.push(data.gsr);
-                historyChart.data.datasets[1].data.push(data.temperature);
-                historyChart.data.datasets[2].data.push(data.spo2);
-                historyChart.data.datasets[3].data.push(crisisProbability);
-                
-                // Keep only the most recent 20 points
-                if (historyChart.data.labels.length > 20) {
-                    historyChart.data.labels.shift();
-                    historyChart.data.datasets.forEach(dataset => dataset.data.shift());
-                }
-                
-                historyChart.update();
+                updateHistoryChart(data);
             }, 2000);
         }
 
@@ -745,7 +764,7 @@
             window.location.href = '/emergency';
         });
 
-        // Dropdown functionality
+        // Add JavaScript for dropdown toggle
         document.addEventListener('DOMContentLoaded', function() {
             const dropdownToggle = document.querySelector('.dropdown-toggle');
             const dropdownMenu = document.querySelector('.dropdown-menu');

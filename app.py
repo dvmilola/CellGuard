@@ -7,7 +7,7 @@ import os
 import joblib
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from crisis_prediction_model import predict_crisis  # Only import the prediction function
+from ml_model import predict_crisis  # Import from our new ML model
 from flask_cors import CORS
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_migrate import Migrate
@@ -16,15 +16,20 @@ from models import (
     HealthcareProvider, Medication, MedicationSchedule, 
     MedicationRefill, Symptom
 )
+from flask_socketio import SocketIO, emit
 
 
 # Configure the application
 app = Flask(__name__, static_folder='static', static_url_path='/static')
-CORS(app)  # Enable CORS for all routes
+CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})  # Enable CORS for all routes with credentials
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///crisis_predictions.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'your-secret-key-here'  # Change this to a secure secret key in production
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Change from 'None' to 'Lax'
+app.config['SESSION_COOKIE_SECURE'] = False  # Change to False for local development
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'  # Change from 'None' to 'Lax'
+app.config['REMEMBER_COOKIE_SECURE'] = False  # Change to False for local development
 db.init_app(app)
 migrate = Migrate(app, db)
 
@@ -34,34 +39,68 @@ login_manager.init_app(app)
 login_manager.login_view = 'login_page'
 login_manager.login_message = 'Please log in to access this page.'
 login_manager.login_message_category = 'info'
+login_manager.session_protection = 'basic'  # Change from 'strong' to 'basic'
+
+# Initialize Flask-SocketIO
+socketio = SocketIO(app, 
+    cors_allowed_origins="*",
+    async_mode='threading',
+    logger=True,
+    engineio_logger=True
+)
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    print(f"[DEBUG] Loading user with ID: {user_id}")
+    user = User.query.get(int(user_id))
+    print(f"[DEBUG] Found user: {user}")
+    return user
 
 # Create database tables
 with app.app_context():
+    print("\n[INFO] Initializing database...")
+    # Drop all tables and recreate them
+    db.drop_all()
     db.create_all()
+    print("[INFO] Database tables recreated")
+    
     # Print database info for verification
     print("\nDatabase initialized at:", app.config['SQLALCHEMY_DATABASE_URI'])
     print("Tables created:", db.metadata.tables.keys())
+    
+    # Create a test user if none exists
+    test_user = User.query.filter_by(email="adamilola311@gmail.com").first()
+    if not test_user:
+        print("[INFO] Creating test user...")
+        test_user = User(
+            name="Test User",
+            email="adamilola311@gmail.com",
+            user_type="patient"
+        )
+        test_user.set_password("Adebayo2004.")
+        db.session.add(test_user)
+        db.session.commit()
+        print("[INFO] Test user created")
+    else:
+        print("[INFO] Test user already exists")
+    
     # Count existing records
     prediction_count = Prediction.query.count()
     print(f"Existing prediction records: {prediction_count}\n")
 
-# For this example, we'll redefine a simplified version
-def predict_crisis(gsr, temperature, spo2):
-    """Simplified prediction function for the web app example"""
-    # This is a placeholder - in production, use your trained model
-    crisis_prob = (gsr / 5.0) * 0.4 + ((temperature - 35) / 4.0) * 0.3 + ((100 - spo2) / 15.0) * 0.3
-    crisis_prob = min(max(crisis_prob, 0), 1)  # Ensure between 0 and 1
-    prediction = 1 if crisis_prob > 0.65 else 0
-    
-    return {
-        'crisis_predicted': prediction,
-        'crisis_probability': float(crisis_prob),
-        'timestamp': datetime.now().isoformat()
-    }
+# Add debug logging for all requests
+@app.before_request
+def log_request_info():
+    print(f"\n[DEBUG] Request: {request.method} {request.url}")
+    print(f"[DEBUG] Headers: {dict(request.headers)}")
+    print(f"[DEBUG] Data: {request.get_data()}")
+    print(f"[DEBUG] JSON: {request.get_json(silent=True)}")
+
+@app.after_request
+def log_response_info(response):
+    print(f"[DEBUG] Response: {response.status_code}")
+    print(f"[DEBUG] Response Headers: {dict(response.headers)}")
+    return response
 
 # No longer need to store predictions in memory as we're using a database
 
@@ -77,19 +116,29 @@ def signup_page():
 @app.route('/api/login', methods=['POST'])
 def login():
     try:
+        print("\n[DEBUG] Login attempt received")
         data = request.get_json()
+        print(f"[DEBUG] Login data: {data}")
+        
         email = data.get('email')
         password = data.get('password')
         
         if not email or not password:
+            print("[DEBUG] Missing email or password")
             return jsonify({'error': 'Email and password are required'}), 400
             
+        print(f"[DEBUG] Looking for user with email: {email}")
         user = User.query.filter_by(email=email).first()
+        print(f"[DEBUG] Found user: {user}")
+        
         if not user or not user.check_password(password):
+            print("[DEBUG] Invalid credentials")
             return jsonify({'error': 'Invalid email or password'}), 401
             
+        print(f"[DEBUG] Logging in user: {user.email}")
         login_user(user, remember=True)
-        print(f"User {user.email} logged in successfully")
+        print(f"[DEBUG] User {user.email} logged in successfully")
+        
         return jsonify({
             'message': 'Login successful',
             'user': {
@@ -101,7 +150,7 @@ def login():
         })
         
     except Exception as e:
-        print(f"Login error: {str(e)}")
+        print(f"[ERROR] Login error: {str(e)}")
         return jsonify({'error': 'An error occurred during login'}), 500
 
 @app.route('/logout')
@@ -158,15 +207,17 @@ def home():
 @app.route('/predictions')
 @login_required
 def predictions():
-    try:
-        print(f"Current user: {current_user}")
-        print(f"User authenticated: {current_user.is_authenticated}")
-        print("Attempting to render predictions.html")
-        return render_template('predictions.html')
-    except Exception as e:
-        print(f"Error rendering predictions.html: {str(e)}")
-        print(f"Template path: {app.template_folder}")
-        return "Error loading page", 500
+    print("\n=== Loading Predictions ===")
+    # Get the latest predictions for the current user
+    predictions = Prediction.query.filter_by(user_id=current_user.id)\
+        .order_by(Prediction.timestamp.desc())\
+        .all()
+    
+    print(f"Found {len(predictions)} predictions")
+    for pred in predictions:
+        print(f"Prediction: {pred.id}, Crisis Probability: {pred.crisis_probability}, Timestamp: {pred.timestamp}")
+    
+    return render_template('predictions.html', predictions=predictions)
 
 @app.route('/emergency')
 @login_required
@@ -249,6 +300,48 @@ def get_medications():
         }
     ])
 
+@app.route('/api/medications', methods=['POST'])
+@login_required
+def save_medication():
+    try:
+        data = request.get_json()
+        
+        # Create new medication
+        new_medication = Medication(
+            user_id=current_user.id,
+            name=data['name'],
+            dosage=data['dosage'],
+            frequency=data['frequency'],
+            start_date=datetime.utcnow().date(),
+            notes=data.get('notes', '')
+        )
+        
+        db.session.add(new_medication)
+        db.session.commit()
+        
+        # Create initial schedule
+        new_schedule = MedicationSchedule(
+            medication_id=new_medication.id,
+            time=datetime.strptime(data['time'], '%H:%M').time(),
+            is_taken=False
+        )
+        
+        db.session.add(new_schedule)
+        db.session.commit()
+        
+        return jsonify({
+            'id': new_medication.id,
+            'name': new_medication.name,
+            'dosage': new_medication.dosage,
+            'frequency': new_medication.frequency,
+            'start_date': new_medication.start_date.isoformat(),
+            'notes': new_medication.notes
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 400
+
 @app.route('/api/medications/schedule', methods=['GET'])
 @login_required
 def get_medication_schedule():
@@ -289,22 +382,100 @@ def get_medication_refills():
     ])
 
 @app.route('/api/medications/history', methods=['GET'])
+@login_required
 def get_medication_history():
-    # In a real implementation, this would fetch history from the database
-    # For now, we'll return sample data
-    return jsonify({
-        'labels': ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        'datasets': [
-            {
-                'label': 'Hydroxyurea',
-                'data': [1, 1, 1, 1, 1, 1, 1]
-            },
-            {
-                'label': 'Folic Acid',
-                'data': [1, 1, 1, 1, 1, 1, 1]
-            }
+    try:
+        # Get the time range from query parameters (default to 7 days)
+        days = int(request.args.get('days', 7))
+        end_date = datetime.utcnow().date()
+        start_date = end_date - timedelta(days=days)
+
+        # Get all medications for the current user
+        medications = Medication.query.filter_by(user_id=current_user.id).all()
+        
+        # Generate labels for the chart (dates)
+        labels = []
+        for i in range(days):
+            date = start_date + timedelta(days=i)
+            labels.append(date.strftime('%a'))
+
+        # Prepare datasets for each medication
+        datasets = []
+        colors = [
+            'rgb(255, 99, 132)',
+            'rgb(54, 162, 235)',
+            'rgb(255, 206, 86)',
+            'rgb(75, 192, 192)',
+            'rgb(153, 102, 255)'
         ]
-    })
+
+        for i, medication in enumerate(medications):
+            # Get schedule entries for this medication within the date range
+            schedules = MedicationSchedule.query.filter(
+                MedicationSchedule.medication_id == medication.id,
+                MedicationSchedule.taken_at >= start_date,
+                MedicationSchedule.taken_at <= end_date
+            ).all()
+
+            # Create a map of dates to taken status
+            date_status = {date: 0 for date in labels}
+            for schedule in schedules:
+                date = schedule.taken_at.strftime('%a')
+                date_status[date] = 1 if schedule.is_taken else 0
+
+            # Add dataset for this medication
+            datasets.append({
+                'label': medication.name,
+                'data': [date_status[date] for date in labels],
+                'borderColor': colors[i % len(colors)],
+                'backgroundColor': colors[i % len(colors)].replace('rgb', 'rgba').replace(')', ', 0.1)'),
+                'tension': 0.4,
+                'fill': True
+            })
+
+        return jsonify({
+            'labels': labels,
+            'datasets': datasets
+        })
+    except Exception as e:
+        print(f"Error getting medication history: {str(e)}")
+        return jsonify({'error': str(e)}), 400
+
+@app.route('/api/medications/schedule/<int:medication_id>', methods=['POST'])
+@login_required
+def mark_medication_taken(medication_id):
+    try:
+        # Get the medication to verify ownership
+        medication = Medication.query.filter_by(
+            id=medication_id,
+            user_id=current_user.id
+        ).first_or_404()
+
+        # Get today's date
+        today = datetime.utcnow().date()
+
+        # Find or create a schedule entry for today
+        schedule = MedicationSchedule.query.filter_by(
+            medication_id=medication_id,
+            scheduled_date=today
+        ).first()
+
+        if not schedule:
+            schedule = MedicationSchedule(
+                medication_id=medication_id,
+                scheduled_date=today,
+                is_taken=True
+            )
+            db.session.add(schedule)
+        else:
+            schedule.is_taken = True
+
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error marking medication as taken: {str(e)}")
+        return jsonify({'error': str(e)}), 400
 
 # API routes
 @app.route('/api/predict', methods=['POST'])
@@ -476,22 +647,97 @@ def knowledge_library():
 
 @app.route('/api/sensor-readings', methods=['POST'])
 @login_required
-def save_sensor_reading():
+def receive_sensor_readings():
+    print("\n=== Received Sensor Readings ===")
+    print(f"Request data: {request.json}")
     try:
-        data = request.get_json()
+        data = request.json
+        if not data:
+            print("Error: No data received")
+            return jsonify({'error': 'No data received'}), 400
+
+        # Validate required fields
+        required_fields = ['gsr', 'temperature', 'spo2']
+        missing_fields = [field for field in required_fields if field not in data]
+        if missing_fields:
+            error_msg = f"Missing required fields: {', '.join(missing_fields)}"
+            print(f"Error: {error_msg}")
+            return jsonify({'error': error_msg}), 400
+
+        # Validate data types
+        try:
+            gsr = float(data['gsr'])
+            temperature = float(data['temperature'])
+            spo2 = float(data['spo2'])
+        except (ValueError, TypeError) as e:
+            error_msg = f"Invalid data types: {str(e)}"
+            print(f"Error: {error_msg}")
+            return jsonify({'error': error_msg}), 400
+
+        # Create sensor reading
         reading = SensorReading(
             user_id=current_user.id,
-            gsr=data['gsr'],
-            temperature=data['temperature'],
-            spo2=data['spo2'],
-            crisis_probability=data['crisis_probability']
+            gsr=gsr,
+            temperature=temperature,
+            spo2=spo2,
+            crisis_probability=0.0,
+            timestamp=datetime.utcnow()
         )
+        print(f"Created reading: {reading}")
         db.session.add(reading)
         db.session.commit()
-        return jsonify({'message': 'Reading saved successfully'}), 201
+        print("Reading saved to database")
+
+        # Make prediction
+        prediction_result = predict_crisis(
+            gsr=gsr,
+            temperature=temperature,
+            spo2=spo2
+        )
+
+        # Create prediction
+        prediction = Prediction(
+            user_id=current_user.id,
+            gsr=gsr,
+            temperature=temperature,
+            spo2=spo2,
+            crisis_predicted=prediction_result['crisis_predicted'],
+            crisis_probability=prediction_result['crisis_probability'],
+            timestamp=datetime.utcnow()
+        )
+        print(f"Created prediction: {prediction}")
+        db.session.add(prediction)
+        db.session.commit()
+        print("Prediction saved to database")
+
+        # Prepare Socket.IO data
+        ws_data = {
+            'type': 'sensor_update',
+            'gsr': gsr,
+            'temperature': temperature,
+            'spo2': spo2,
+            'crisis_probability': prediction_result['crisis_probability'],
+            'timestamp': datetime.utcnow().isoformat()
+        }
+        print(f"[DEBUG] Emitting Socket.IO data: {ws_data}")
+        
+        # Emit Socket.IO event with the new data
+        socketio.emit('sensor_update', ws_data)
+        print("[DEBUG] Socket.IO event emitted")
+
+        return jsonify({
+            'message': 'Data received and processed successfully',
+            'reading_id': reading.id,
+            'prediction_id': prediction.id
+        }), 201
+
     except Exception as e:
+        print(f"Error processing sensor readings: {str(e)}")
         db.session.rollback()
-        return jsonify({'error': str(e)}), 500
+        return jsonify({
+            'error': str(e),
+            'details': 'An error occurred while processing the sensor readings'
+        }), 500
 
 @app.route('/api/sensor-readings', methods=['GET'])
 @login_required
@@ -510,8 +756,32 @@ def get_sensor_readings():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# WebSocket event handlers
+@socketio.on('connect')
+def handle_connect():
+    print('\n[DEBUG] Client connected to Socket.IO')
+    print(f'[DEBUG] Client IP: {request.remote_addr}')
+    emit('connected', {'data': 'Connected to Socket.IO server'})
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    print('\n[DEBUG] Client disconnected from Socket.IO')
+    print(f'[DEBUG] Client IP: {request.remote_addr}')
+
+@socketio.on('message')
+def handle_message(message):
+    print('\n[DEBUG] Received WebSocket message:', message)
+    try:
+        if isinstance(message, dict) and message.get('type') == 'connection_test':
+            print('[DEBUG] Received connection test message')
+            emit('message', {'status': 'connection_verified'})
+    except Exception as e:
+        print(f'[ERROR] Error handling WebSocket message: {str(e)}')
+
 # Make sure templates directory exists
 os.makedirs('templates', exist_ok=True)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    print("\n[INFO] Starting Flask server with Socket.IO...")
+    print("[INFO] Server will be available at http://localhost:5001")
+    socketio.run(app, host='0.0.0.0', port=5001, debug=True)
