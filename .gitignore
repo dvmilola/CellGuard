@@ -43,6 +43,12 @@ Thumbs.db
 *.db
 *.sqlite3
 
+# Model files
+*.joblib
+*.pkl
+*.h5
+*.model
+
 # Logs
 *.log
 logs/
@@ -51,3 +57,8 @@ logs/
 .env
 .env.local
 .env.*.local
+
+# Project specific
+catboost_info/
+migrations/
+IMG_*.heic
