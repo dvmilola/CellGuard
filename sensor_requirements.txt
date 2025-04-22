@@ -1,0 +1,5 @@
+adafruit-circuitpython-ads1x15
+adafruit-circuitpython-mlx90614
+max30102
+numpy
+adafruit-blinka 

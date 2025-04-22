@@ -134,4 +134,31 @@ class Symptom(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
-    user = db.relationship('User', backref=db.backref('symptoms', lazy=True)) 
+    user = db.relationship('User', backref=db.backref('symptoms', lazy=True))
+
+class CrisisPrediction(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    gsr = db.Column(db.Float, nullable=False)
+    temperature = db.Column(db.Float, nullable=False)
+    spo2 = db.Column(db.Float, nullable=False)
+    crisis_predicted = db.Column(db.Boolean, nullable=False)
+    crisis_probability = db.Column(db.Float, nullable=False)
+    features = db.Column(db.JSON, nullable=False)  # Store all features used for prediction
+    recommendations = db.Column(db.JSON)  # Store any recommendations generated
+    
+    user = db.relationship('User', backref=db.backref('crisis_predictions', lazy=True))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'timestamp': self.timestamp.isoformat(),
+            'gsr': self.gsr,
+            'temperature': self.temperature,
+            'spo2': self.spo2,
+            'crisis_predicted': self.crisis_predicted,
+            'crisis_probability': self.crisis_probability,
+            'features': self.features,
+            'recommendations': self.recommendations
+        } 

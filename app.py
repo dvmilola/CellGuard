@@ -1,3 +1,9 @@
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 from flask import Flask, request, jsonify, render_template, redirect, url_for, flash, session
 import json
 import pandas as pd
@@ -7,16 +13,19 @@ import os
 import joblib
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from ml_model import predict_crisis  # Import from our new ML model
+from ml_model import predict_crisis, load_model  # Import load_model function
 from flask_cors import CORS
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_migrate import Migrate
 from models import (
     db, User, SensorReading, Prediction, EmergencyContact, 
     HealthcareProvider, Medication, MedicationSchedule, 
-    MedicationRefill, Symptom
+    MedicationRefill, Symptom, CrisisPrediction
 )
 from flask_socketio import SocketIO, emit
+from sensor_interface import SensorInterface
+import threading
+import time
 
 
 # Configure the application
@@ -30,6 +39,8 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Change from 'None' to 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = False  # Change to False for local development
 app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'  # Change from 'None' to 'Lax'
 app.config['REMEMBER_COOKIE_SECURE'] = False  # Change to False for local development
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
 db.init_app(app)
 migrate = Migrate(app, db)
 
@@ -48,6 +59,82 @@ socketio = SocketIO(app,
     logger=True,
     engineio_logger=True
 )
+
+# Add global variables for sensor control
+sensor_interface = None
+monitoring_thread = None
+is_monitoring = False
+
+# Global variable to track monitoring state
+is_monitoring = False
+monitoring_thread = None
+
+# Initialize the model
+model = load_model()
+
+def start_sensor_monitoring(user_id):
+    """Background thread for continuous sensor monitoring"""
+    global is_monitoring
+    
+    try:
+        # Initialize sensor interface
+        sensor_interface = SensorInterface()
+        
+        # Calibrate GSR sensor
+        baseline = sensor_interface.calibrate_gsr()
+        logger.info(f"GSR baseline: {baseline:.2f} µS")
+        
+        def process_readings(readings):
+            if not is_monitoring:
+                return
+                
+            try:
+                with app.app_context():
+                    # Create sensor reading
+                    reading = SensorReading(
+                        user_id=user_id,
+                        gsr=readings['gsr'],
+                        temperature=readings['temperature'],
+                        spo2=readings['spo2'],
+                        timestamp=datetime.fromisoformat(readings['timestamp'])
+                    )
+                    db.session.add(reading)
+                    
+                    # Make prediction
+                    features = np.array([[readings['gsr'], readings['temperature'], readings['spo2']]])
+                    prediction = model.predict(features)[0]
+                    probability = model.predict_proba(features)[0][1]
+                    
+                    # Create prediction record
+                    prediction_record = Prediction(
+                        user_id=user_id,
+                        reading_id=reading.id,
+                        prediction=prediction,
+                        probability=probability,
+                        timestamp=datetime.now()
+                    )
+                    db.session.add(prediction_record)
+                    db.session.commit()
+                    
+                    # Emit real-time update
+                    socketio.emit('sensor_update', {
+                        'gsr': readings['gsr'],
+                        'temperature': readings['temperature'],
+                        'spo2': readings['spo2'],
+                        'prediction': prediction,
+                        'probability': probability,
+                        'timestamp': readings['timestamp']
+                    })
+                    
+            except Exception as e:
+                logger.error(f"Error processing readings: {str(e)}")
+        
+        # Start continuous monitoring
+        sensor_interface.continuous_monitoring(process_readings)
+        
+    except Exception as e:
+        logger.error(f"Error in monitoring thread: {str(e)}")
+        is_monitoring = False
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -127,15 +214,11 @@ def login():
             print("[DEBUG] Missing email or password")
             return jsonify({'error': 'Email and password are required'}), 400
             
-        print(f"[DEBUG] Looking for user with email: {email}")
         user = User.query.filter_by(email=email).first()
-        print(f"[DEBUG] Found user: {user}")
-        
         if not user or not user.check_password(password):
             print("[DEBUG] Invalid credentials")
             return jsonify({'error': 'Invalid email or password'}), 401
             
-        print(f"[DEBUG] Logging in user: {user.email}")
         login_user(user, remember=True)
         print(f"[DEBUG] User {user.email} logged in successfully")
         
@@ -208,16 +291,14 @@ def home():
 @login_required
 def predictions():
     print("\n=== Loading Predictions ===")
-    # Get the latest predictions for the current user
     predictions = Prediction.query.filter_by(user_id=current_user.id)\
         .order_by(Prediction.timestamp.desc())\
         .all()
     
     print(f"Found {len(predictions)} predictions")
-    for pred in predictions:
-        print(f"Prediction: {pred.id}, Crisis Probability: {pred.crisis_probability}, Timestamp: {pred.timestamp}")
-    
-    return render_template('predictions.html', predictions=predictions)
+    return render_template('predictions.html', 
+                         predictions=predictions,
+                         is_monitoring=is_monitoring)
 
 @app.route('/emergency')
 @login_required
@@ -280,6 +361,7 @@ def medications():
         return "Error loading page", 500
 
 @app.route('/api/medications', methods=['GET'])
+@login_required
 def get_medications():
     # In a real implementation, this would fetch medications from the database
     # For now, we'll return sample data
@@ -485,32 +567,79 @@ def api_predict():
         # Get data from request
         data = request.get_json()
         
-        # Extract sensor readings
-        gsr = float(data.get('gsr', 0))
-        temperature = float(data.get('temperature', 0))
-        spo2 = float(data.get('spo2', 0))
+        # Validate required fields
+        required_fields = ['spo2', 'temperature', 'age', 'gender', 'dehydration']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
         
-        # Make prediction
-        result = predict_crisis(gsr, temperature, spo2)
+        # Process sensor data
+        sensor_interface = SensorInterface()
+        result = sensor_interface.process_sensor_data(data)
         
         # Store prediction in database
-        prediction = Prediction(
-            user_id=current_user.id,
-            timestamp=datetime.fromisoformat(result['timestamp']),
-            gsr=gsr,
-            temperature=temperature,
-            spo2=spo2,
-            crisis_predicted=bool(result['crisis_predicted']),
-            crisis_probability=result['crisis_probability']
+        prediction = CrisisPrediction(
+            spo2=data['spo2'],
+            temperature=data['temperature'],
+            age=data['age'],
+            gender=data['gender'],
+            dehydration=data['dehydration'],
+            prediction=result['prediction'],
+            probability=result['probability'],
+            threshold=result['threshold'],
+            timestamp=result['timestamp']
         )
         db.session.add(prediction)
         db.session.commit()
         
-        return jsonify(result)
-    
+        # Prepare response
+        response = {
+            'prediction': result['prediction'],
+            'probability': result['probability'],
+            'threshold': result['threshold'],
+            'timestamp': result['timestamp'],
+            'risk_level': 'High' if result['prediction'] == 1 else 'Low',
+            'confidence': 'High' if abs(result['probability'] - result['threshold']) > 0.2 else 'Medium',
+            'recommendations': get_recommendations(result, data)
+        }
+        
+        return jsonify(response)
+        
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 400
+        return jsonify({'error': str(e)}), 500
+
+def get_recommendations(result, data):
+    """Generate recommendations based on prediction and vital signs"""
+    recommendations = []
+    
+    # Check SpO2
+    if data['spo2'] < 95:
+        recommendations.append("Monitor oxygen levels closely")
+    if data['spo2'] < 90:
+        recommendations.append("Consider supplemental oxygen")
+    
+    # Check temperature
+    if data['temperature'] > 37.5:
+        recommendations.append("Monitor temperature regularly")
+    if data['temperature'] > 38.5:
+        recommendations.append("Consider antipyretics")
+    
+    # Check dehydration
+    if data['dehydration'] > 0:
+        recommendations.append("Encourage fluid intake")
+    if data['dehydration'] >= 2:
+        recommendations.append("Consider IV fluids")
+    
+    # Age-specific recommendations
+    if data['age'] < 12 or data['age'] > 65:
+        recommendations.append("Monitor more frequently due to age risk")
+    
+    # Add prediction-specific recommendations
+    if result['prediction'] == 1:
+        recommendations.append("High risk detected - increase monitoring frequency")
+        recommendations.append("Prepare emergency response plan")
+    
+    return recommendations
 
 @app.route('/api/recent', methods=['GET'])
 def get_recent():
@@ -777,6 +906,43 @@ def handle_message(message):
             emit('message', {'status': 'connection_verified'})
     except Exception as e:
         print(f'[ERROR] Error handling WebSocket message: {str(e)}')
+
+@app.route('/api/start-monitoring', methods=['POST'])
+@login_required
+def start_monitoring():
+    global is_monitoring, monitoring_thread
+    
+    try:
+        if not is_monitoring:
+            is_monitoring = True
+            monitoring_thread = threading.Thread(
+                target=start_sensor_monitoring,
+                args=(current_user.id,)
+            )
+            monitoring_thread.daemon = True
+            monitoring_thread.start()
+            logger.info("Started sensor monitoring")
+            return jsonify({'status': 'success', 'message': 'Monitoring started'})
+        else:
+            return jsonify({'status': 'info', 'message': 'Monitoring already running'})
+    except Exception as e:
+        logger.error(f"Error starting monitoring: {str(e)}")
+        is_monitoring = False
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/stop-monitoring', methods=['POST'])
+@login_required
+def stop_monitoring():
+    global is_monitoring, monitoring_thread
+    
+    if is_monitoring:
+        is_monitoring = False
+        if monitoring_thread:
+            monitoring_thread.join(timeout=1.0)
+        logger.info("Stopped sensor monitoring")
+        return jsonify({'status': 'success', 'message': 'Monitoring stopped'})
+    else:
+        return jsonify({'status': 'info', 'message': 'Monitoring not running'})
 
 # Make sure templates directory exists
 os.makedirs('templates', exist_ok=True)

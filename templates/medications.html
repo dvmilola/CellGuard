@@ -933,120 +933,240 @@
     });
   }
 
-  // Enhanced Chart Initialization
+  // Initialize medication history chart
   const ctx = document.getElementById('medication-history-chart').getContext('2d');
-  const historyChart = new Chart(ctx, {
+  let medicationHistoryChart = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      datasets: [
-        {
-          label: 'Hydroxyurea',
-          data: [1, 1, 1, 1, 1, 0, 1],
-          borderColor: 'rgb(255, 99, 132)',
-          backgroundColor: 'rgba(255, 99, 132, 0.1)',
-          tension: 0.4,
-          fill: true,
-          pointBackgroundColor: 'rgb(255, 99, 132)',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6
-        },
-        {
-          label: 'Folic Acid',
-          data: [1, 1, 1, 1, 1, 1, 1],
-          borderColor: 'rgb(54, 162, 235)',
-          backgroundColor: 'rgba(54, 162, 235, 0.1)',
-          tension: 0.4,
-          fill: true,
-          pointBackgroundColor: 'rgb(54, 162, 235)',
-          pointBorderColor: '#fff',
-          pointBorderWidth: 2,
-          pointRadius: 4,
-          pointHoverRadius: 6
-        }
-      ]
+      labels: [],
+      datasets: []
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      interaction: {
-        intersect: false,
-        mode: 'index'
-      },
-      plugins: {
-        tooltip: {
-          backgroundColor: 'rgba(0, 0, 0, 0.8)',
-          padding: 12,
-          titleFont: {
-            size: 14,
-            weight: 'bold'
-          },
-          bodyFont: {
-            size: 13
-          },
-          callbacks: {
-            label: function(context) {
-              return context.dataset.label + ': ' + (context.raw === 1 ? 'Taken' : 'Missed');
-            }
-          }
-        },
-        legend: {
-          display: false
-        }
-      },
       scales: {
         y: {
           beginAtZero: true,
           max: 1,
           ticks: {
-            stepSize: 1,
-            callback: function(value) {
-              return value === 1 ? 'Taken' : 'Missed';
-            }
-          },
-          grid: {
-            drawBorder: false
-          }
-        },
-        x: {
-          grid: {
-            display: false
+            stepSize: 1
           }
         }
       }
     }
   });
 
-  // Time range selector handler
-  document.getElementById('time-range').addEventListener('change', function(e) {
-    const days = parseInt(e.target.value);
-    // In a real implementation, this would fetch new data based on the selected time range
-    console.log('Time range changed:', days);
+  // Function to update the chart legend
+  function updateChartLegend(medications) {
+    const legendContainer = document.querySelector('.chart-legend');
+    legendContainer.innerHTML = ''; // Clear existing legend items
     
-    // For demo purposes, we'll just update the chart with some random data
-    const newData = Array.from({length: days}, () => Math.random() > 0.1 ? 1 : 0);
-    historyChart.data.labels = Array.from({length: days}, (_, i) => `Day ${i + 1}`);
-    historyChart.data.datasets[0].data = newData;
-    historyChart.data.datasets[1].data = newData.map(() => Math.random() > 0.2 ? 1 : 0);
-    historyChart.update();
+    const colors = [
+      'rgb(255, 99, 132)',
+      'rgb(54, 162, 235)',
+      'rgb(255, 206, 86)',
+      'rgb(75, 192, 192)',
+      'rgb(153, 102, 255)'
+    ];
+
+    medications.forEach((medication, index) => {
+      const legendItem = document.createElement('div');
+      legendItem.className = 'legend-item';
+      legendItem.innerHTML = `
+        <span class="legend-color" style="background-color: ${colors[index % colors.length]}"></span>
+        <span class="legend-label">${medication.name}</span>
+      `;
+      legendContainer.appendChild(legendItem);
+    });
+  }
+
+  // Function to load medication history
+  async function loadMedicationHistory(days = 7) {
+    try {
+      // First get all medications to update the legend
+      const medicationsResponse = await fetch('/api/medications');
+      if (!medicationsResponse.ok) throw new Error('Failed to fetch medications');
+      const medications = await medicationsResponse.json();
+      
+      // Update the legend with all medications
+      updateChartLegend(medications);
+      
+      // Then get the history data
+      const response = await fetch(`/api/medications/history?days=${days}`);
+      if (!response.ok) throw new Error('Failed to fetch medication history');
+      
+      const data = await response.json();
+      
+      // Update chart data
+      medicationHistoryChart.data.labels = data.labels;
+      medicationHistoryChart.data.datasets = data.datasets;
+      medicationHistoryChart.update();
+    } catch (error) {
+      console.error('Error loading medication history:', error);
+    }
+  }
+
+  // Function to update schedule list
+  function updateScheduleList(medication) {
+    const scheduleList = document.querySelector('.schedule-list');
+    const scheduleItem = document.createElement('div');
+    scheduleItem.className = 'schedule-item';
+    scheduleItem.innerHTML = `
+      <div class="time">${medication.time}</div>
+      <div class="medication-info">
+        <h4>${medication.name}</h4>
+        <p>${medication.dosage}</p>
+      </div>
+      <div class="schedule-status">
+        <span class="status-pending">Pending</span>
+        <button class="btn btn-primary btn-sm mark-taken" data-medication-id="${medication.id}">
+          <i class="fas fa-check"></i> Mark Taken
+        </button>
+      </div>
+    `;
+    scheduleList.appendChild(scheduleItem);
+
+    // Add event listener to the new mark taken button
+    const markTakenButton = scheduleItem.querySelector('.mark-taken');
+    markTakenButton.addEventListener('click', handleMarkTaken);
+  }
+
+  // Function to handle marking medication as taken
+  async function handleMarkTaken() {
+    const medicationId = this.dataset.medicationId;
+    const statusElement = this.previousElementSibling;
+    
+    try {
+      // Update medication schedule in database
+      const response = await fetch(`/api/medications/schedule/${medicationId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to mark medication as taken');
+      }
+
+      // Update UI
+      statusElement.textContent = 'Completed';
+      statusElement.className = 'status-completed';
+      this.disabled = true;
+
+      // Update the graph
+      loadMedicationHistory();
+    } catch (error) {
+      console.error('Error marking medication as taken:', error);
+      alert(error.message || 'Failed to mark medication as taken. Please try again.');
+    }
+  }
+
+  // Add event listeners to existing mark taken buttons
+  document.querySelectorAll('.mark-taken').forEach(button => {
+    button.addEventListener('click', handleMarkTaken);
+  });
+
+  // Update the event delegation for dynamically added buttons
+  document.querySelector('.schedule-list').addEventListener('click', (e) => {
+    if (e.target.closest('.mark-taken')) {
+      handleMarkTaken.call(e.target.closest('.mark-taken'));
+    }
+  });
+
+  // Function to update medication list
+  function updateMedicationList(medication) {
+    const medicationList = document.querySelector('.medication-list');
+    const medicationCard = document.createElement('div');
+    medicationCard.className = 'medication-card';
+    medicationCard.innerHTML = `
+      <div class="medication-header">
+        <h3>${medication.name}</h3>
+        <span class="medication-status status-active">Active</span>
+      </div>
+      <div class="medication-details">
+        <div class="detail-item">
+          <i class="fas fa-capsules"></i>
+          <span>${medication.dosage}</span>
+        </div>
+        <div class="detail-item">
+          <i class="fas fa-clock"></i>
+          <span>${medication.frequency}</span>
+        </div>
+        <div class="detail-item">
+          <i class="fas fa-calendar"></i>
+          <span>Started: ${new Date().toLocaleDateString()}</span>
+        </div>
+      </div>
+      <div class="medication-actions">
+        <button class="btn btn-outline">
+          <i class="fas fa-edit"></i> Edit
+        </button>
+        <button class="btn btn-outline">
+          <i class="fas fa-history"></i> History
+        </button>
+      </div>
+    `;
+    medicationList.appendChild(medicationCard);
+  }
+
+  // Handle medication form submission
+  document.getElementById('add-medication-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = {
+      name: document.getElementById('medication-name').value,
+      dosage: document.getElementById('medication-dosage').value,
+      frequency: document.getElementById('medication-frequency').value,
+      time: document.getElementById('medication-time').value,
+      notes: document.getElementById('medication-notes').value
+    };
+
+    try {
+      const response = await fetch('/api/medications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(formData)
+      });
+
+      if (!response.ok) throw new Error('Failed to save medication');
+
+      const newMedication = await response.json();
+
+      // Update UI
+      updateMedicationList(newMedication);
+      updateScheduleList(newMedication);
+      
+      // Reload medication history to update graph and legend
+      await loadMedicationHistory(parseInt(document.getElementById('time-range').value));
+
+    // Close modal and reset form
+      document.getElementById('add-medication-modal').style.display = 'none';
+      document.getElementById('add-medication-form').reset();
+      
+      // Show success message
+      alert('Medication added successfully!');
+    } catch (error) {
+      console.error('Error saving medication:', error);
+      alert('Failed to save medication. Please try again.');
+    }
+  });
+
+  // Load initial medication history and update legend
+  loadMedicationHistory();
+
+  // Handle time range changes
+  document.getElementById('time-range').addEventListener('change', (e) => {
+    loadMedicationHistory(parseInt(e.target.value));
   });
 
   // Add medication button handler
   document.getElementById('add-medication').addEventListener('click', function() {
     // In a real implementation, this would open a modal or form to add a new medication
     console.log('Add medication clicked');
-  });
-
-  // Mark taken button handlers
-  document.querySelectorAll('.btn-primary.btn-sm').forEach(button => {
-    button.addEventListener('click', function() {
-      const statusElement = this.previousElementSibling;
-      statusElement.textContent = 'Completed';
-      statusElement.className = 'status-completed';
-      this.disabled = true;
-    });
   });
 
   // Modal functionality
@@ -1075,107 +1195,5 @@
     if (e.target === modal) {
       closeModal();
     }
-  });
-
-  // Handle form submission
-  form.addEventListener('submit', (e) => {
-    e.preventDefault();
-    
-    // Get form values
-    const name = document.getElementById('medication-name').value;
-    const dosage = document.getElementById('medication-dosage').value;
-    const frequency = document.getElementById('medication-frequency').value;
-    const time = document.getElementById('medication-time').value;
-    const notes = document.getElementById('medication-notes').value;
-
-    // Create new medication card
-    const medicationList = document.querySelector('.medication-list');
-    const newCard = document.createElement('div');
-    newCard.className = 'medication-card';
-    newCard.innerHTML = `
-      <div class="medication-header">
-        <h3>${name}</h3>
-        <span class="medication-status status-active">Active</span>
-      </div>
-      <div class="medication-details">
-        <div class="detail-item">
-          <i class="fas fa-capsules"></i>
-          <span>${dosage}</span>
-        </div>
-        <div class="detail-item">
-          <i class="fas fa-clock"></i>
-          <span>${frequency}</span>
-        </div>
-        <div class="detail-item">
-          <i class="fas fa-calendar"></i>
-          <span>Started: ${new Date().toLocaleDateString()}</span>
-        </div>
-      </div>
-      <div class="medication-actions">
-        <button class="btn btn-outline">
-          <i class="fas fa-edit"></i> Edit
-        </button>
-        <button class="btn btn-outline">
-          <i class="fas fa-history"></i> History
-        </button>
-      </div>
-    `;
-
-    // Add to schedule
-    const scheduleList = document.querySelector('.schedule-list');
-    const newScheduleItem = document.createElement('div');
-    newScheduleItem.className = 'schedule-item';
-    newScheduleItem.innerHTML = `
-      <div class="time">${time}</div>
-      <div class="medication-info">
-        <h4>${name}</h4>
-        <p>${dosage}</p>
-      </div>
-      <div class="schedule-status">
-        <span class="status-pending">Pending</span>
-        <button class="btn btn-primary btn-sm">
-          <i class="fas fa-check"></i> Mark Taken
-        </button>
-      </div>
-    `;
-
-    // Add to refill tracking
-    const refillList = document.querySelector('.refill-list');
-    const newRefillItem = document.createElement('div');
-    newRefillItem.className = 'refill-item';
-    newRefillItem.innerHTML = `
-      <div class="medication-info">
-        <h4>${name}</h4>
-        <p>${dosage}</p>
-      </div>
-      <div class="refill-details">
-        <div class="progress-bar">
-          <div class="progress" style="width: 100%"></div>
-        </div>
-        <div class="refill-info">
-          <span>30 days remaining</span>
-          <button class="btn btn-outline btn-sm">
-            <i class="fas fa-shopping-cart"></i> Order Refill
-          </button>
-        </div>
-      </div>
-    `;
-
-    // Add new elements to the page
-    medicationList.appendChild(newCard);
-    scheduleList.appendChild(newScheduleItem);
-    refillList.appendChild(newRefillItem);
-
-    // Close modal and reset form
-    closeModal();
-
-    // Add event listener to the new "Mark Taken" button
-    const newMarkTakenButton = newScheduleItem.querySelector('.btn-primary.btn-sm');
-    newMarkTakenButton.addEventListener('click', function() {
-      const statusElement = this.previousElementSibling;
-      statusElement.textContent = 'Completed';
-      statusElement.className = 'status-completed';
-      this.disabled = true;
-    });
   });
 </script> 

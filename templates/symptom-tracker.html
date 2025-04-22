@@ -349,24 +349,116 @@
         .map(checkbox => checkbox.value);
       const notes = document.getElementById('symptom-notes').value;
 
-      // In a real implementation, this would save to the database
-      console.log('Saving symptoms:', { painLevel, symptoms, notes });
+      // Save to database
+      fetch('/api/symptoms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          date: currentDate.toISOString().split('T')[0],
+          pain_level: parseInt(painLevel),
+          symptoms: symptoms,
+          notes: notes
+        })
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to save symptoms');
+        }
+        return response.json();
+      })
+      .then(data => {
+        alert('Symptoms saved successfully!');
+        // Clear the form
+        document.getElementById('pain-level').value = 0;
+        document.querySelectorAll('input[name="symptoms"]:checked').forEach(checkbox => {
+          checkbox.checked = false;
+        });
+        document.getElementById('symptom-notes').value = '';
+        // Refresh the chart and recent symptoms
+        loadSymptomHistory();
+        loadRecentSymptoms();
+      })
+      .catch(error => {
+        console.error('Error saving symptoms:', error);
+        alert('Failed to save symptoms. Please try again.');
+      });
+    });
 
-      // Show success message
-      alert('Symptoms saved successfully!');
+    // Load symptom history
+    function loadSymptomHistory() {
+      const days = document.getElementById('history-range').value;
+      fetch(`/api/symptoms?time_range=${days}`)
+        .then(response => response.json())
+        .then(symptoms => {
+          // Update chart data
+          symptomChart.data.labels = symptoms.map(s => new Date(s.date).toLocaleDateString());
+          symptomChart.data.datasets[0].data = symptoms.map(s => s.pain_level);
+          symptomChart.update();
+
+          // Update stats
+          if (symptoms.length > 0) {
+            const avgPain = symptoms.reduce((sum, s) => sum + s.pain_level, 0) / symptoms.length;
+            document.querySelector('.stat-card:nth-child(1) .stat-value').textContent = avgPain.toFixed(1);
+
+            // Count symptom frequency
+            const symptomCounts = {};
+            symptoms.forEach(s => {
+              JSON.parse(s.symptoms).forEach(symptom => {
+                symptomCounts[symptom] = (symptomCounts[symptom] || 0) + 1;
+              });
+            });
+            const mostCommon = Object.entries(symptomCounts)
+              .sort((a, b) => b[1] - a[1])[0];
+            document.querySelector('.stat-card:nth-child(2) .stat-value').textContent = mostCommon ? mostCommon[0] : 'None';
+
+            // Count symptom-free days
+            const symptomFreeDays = symptoms.filter(s => s.pain_level === 0).length;
+            document.querySelector('.stat-card:nth-child(3) .stat-value').textContent = symptomFreeDays;
+          }
+        })
+        .catch(error => console.error('Error loading symptom history:', error));
+    }
+
+    // Load recent symptoms
+    function loadRecentSymptoms() {
+      fetch('/api/symptoms?time_range=7')
+        .then(response => response.json())
+        .then(symptoms => {
+          const symptomList = document.querySelector('.symptom-list');
+          symptomList.innerHTML = '';
+
+          symptoms.slice(0, 5).forEach(symptom => {
+            const card = document.createElement('div');
+            card.className = 'symptom-card';
+            card.innerHTML = `
+              <div class="symptom-header">
+                <span class="date">${new Date(symptom.date).toLocaleDateString()}</span>
+                <span class="pain-level">Pain Level: ${symptom.pain_level}</span>
+              </div>
+              <div class="symptom-details">
+                <div class="symptoms">
+                  ${JSON.parse(symptom.symptoms).map(s => `<span class="symptom-tag">${s}</span>`).join('')}
+                </div>
+                <p class="notes">${symptom.notes || 'No additional notes'}</p>
+              </div>
+            `;
+            symptomList.appendChild(card);
+          });
+        })
+        .catch(error => console.error('Error loading recent symptoms:', error));
+    }
+
+    // Load initial data
+    document.addEventListener('DOMContentLoaded', () => {
+      loadSymptomHistory();
+      loadRecentSymptoms();
     });
 
     // History Range Selector
     document.getElementById('history-range').addEventListener('change', function(e) {
-      const days = parseInt(e.target.value);
-      // In a real implementation, this would fetch new data based on the selected time range
-      console.log('Time range changed:', days);
-      
-      // For demo purposes, we'll just update the chart with some random data
-      const newData = Array.from({length: days}, () => Math.floor(Math.random() * 6));
-      symptomChart.data.labels = Array.from({length: days}, (_, i) => `Day ${i + 1}`);
-      symptomChart.data.datasets[0].data = newData;
-      symptomChart.update();
+      loadSymptomHistory();
     });
   </script>
 </body>

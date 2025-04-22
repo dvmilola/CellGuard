@@ -1,0 +1,67 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" href="/">CellGuard</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                {% if current_user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link" href="/predictions">Crisis Prediction</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/medication">Medication</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/symptom-tracker">Symptom Tracker</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="/knowledge-library">Knowledge Library</a>
+                </li>
+                {% endif %}
+            </ul>
+            <ul class="navbar-nav">
+                {% if current_user.is_authenticated %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user-circle"></i> {{ current_user.name }}
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item" href="{{ url_for('profile') }}"><i class="fas fa-user"></i> Profile</a></li>
+                        <li><a class="dropdown-item" href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Settings</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('login_page') }}">Login</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('signup_page') }}">Sign Up</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<script>
+document.getElementById('logoutBtn')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    fetch('/api/logout', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message === 'Logout successful') {
+            window.location.href = '/login';
+        }
+    })
+    .catch(error => console.error('Error:', error));
+});
+</script> 
