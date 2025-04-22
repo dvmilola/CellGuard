@@ -106,10 +106,10 @@
                 <button class="btn btn-primary" id="start-monitoring">
                   <i class="fas fa-play"></i> Start Monitoring
                 </button>
-                                <button class="btn btn-danger" id="stop-monitoring" style="display: none;">
-                                    <i class="fas fa-stop"></i> Stop Monitoring
-                                </button>
-                                <button class="btn btn-outline" id="emergency-contact" style="display: none;">
+                <button class="btn btn-danger" id="stop-monitoring" style="display: none;">
+                  <i class="fas fa-stop"></i> Stop Monitoring
+                </button>
+                <button class="btn btn-outline" id="emergency-contact" style="display: none;">
                   <i class="fas fa-phone-alt"></i> Contact Emergency
                 </button>
               </div>
@@ -578,6 +578,72 @@
     color: #b4b7c9;
     margin: 0;
   }
+
+  .risk-levels {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 20px 0;
+  }
+
+  .risk-level {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: 5px;
+    opacity: 0.5;
+    transition: all 0.3s ease;
+  }
+
+  .risk-level.active {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+
+  .risk-level i {
+    font-size: 1.2rem;
+  }
+
+  .risk-level.critical {
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+  }
+
+  .risk-level.high {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+  }
+
+  .risk-level.moderate {
+    background-color: rgba(23, 162, 184, 0.1);
+    color: #17a2b8;
+  }
+
+  .risk-level.low {
+    background-color: rgba(40, 167, 69, 0.1);
+    color: #28a745;
+  }
+
+  .risk-level.critical.active {
+    background-color: rgba(220, 53, 69, 0.2);
+    box-shadow: 0 0 10px rgba(220, 53, 69, 0.3);
+  }
+
+  .risk-level.high.active {
+    background-color: rgba(255, 193, 7, 0.2);
+    box-shadow: 0 0 10px rgba(255, 193, 7, 0.3);
+  }
+
+  .risk-level.moderate.active {
+    background-color: rgba(23, 162, 184, 0.2);
+    box-shadow: 0 0 10px rgba(23, 162, 184, 0.3);
+  }
+
+  .risk-level.low.active {
+    background-color: rgba(40, 167, 69, 0.2);
+    box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+  }
     </style>
 
     <script>
@@ -591,6 +657,23 @@
         
         // Initialize monitoring state
         let isMonitoring = {{ is_monitoring|tojson|safe }};
+        
+        // Socket.IO event handlers
+        socket.on('sensor_update', function(data) {
+            // Update sensor values and status
+            updateSensorValues(data);
+            
+            // Update prediction display
+            updatePrediction(data.probability);
+            
+            // Update chart
+            updateHistoryChart(data);
+            
+            // Show emergency contact button if crisis is predicted
+            if (data.prediction) {
+                document.getElementById('emergency-contact').style.display = 'block';
+            }
+        });
         
         // Function to update button states
         function updateButtonStates() {
@@ -682,39 +765,6 @@
             } catch (error) {
                 console.error('Error contacting emergency services:', error);
                 showAlert('Failed to contact emergency services', 'error');
-            }
-        });
-        
-        // Socket.IO event handlers
-        socket.on('sensor_update', (data) => {
-            // Update the readings table
-            const readingsTable = document.getElementById('readings-table');
-            const newRow = readingsTable.insertRow(1);
-            
-            newRow.innerHTML = `
-                <td>${new Date(data.timestamp).toLocaleString()}</td>
-                <td>${data.gsr.toFixed(2)} µS</td>
-                <td>${data.temperature.toFixed(1)}°C</td>
-                <td>${data.spo2.toFixed(1)}%</td>
-                <td>${data.prediction ? 'Yes' : 'No'}</td>
-                <td>${(data.probability * 100).toFixed(1)}%</td>
-            `;
-            
-            // Keep only the last 10 readings
-            while (readingsTable.rows.length > 11) {
-                readingsTable.deleteRow(10);
-            }
-            
-            // Update the latest readings display
-            document.getElementById('latest-gsr').textContent = `${data.gsr.toFixed(2)} µS`;
-            document.getElementById('latest-temperature').textContent = `${data.temperature.toFixed(1)}°C`;
-            document.getElementById('latest-spo2').textContent = `${data.spo2.toFixed(1)}%`;
-            document.getElementById('latest-prediction').textContent = data.prediction ? 'Yes' : 'No';
-            document.getElementById('latest-probability').textContent = `${(data.probability * 100).toFixed(1)}%`;
-            
-            // Show emergency contact button if crisis is predicted
-            if (data.prediction) {
-                emergencyContactBtn.style.display = 'block';
             }
         });
         
@@ -848,33 +898,64 @@
             historyChart.update('none'); // Use 'none' to prevent animation for real-time updates
         }
 
-  // Update sensor values and status
+  // Function to update sensor values and status
   function updateSensorValues(data) {
-            console.log('Updating sensor values:', data);
-    document.getElementById('gsr-value').textContent = data.gsr.toFixed(2);
+    console.log('Updating sensor values:', data);
+    
+    // Update sensor values
+    document.getElementById('gsr-value').textContent = data.gsr.toFixed(2) + ' µS';
     document.getElementById('temp-value').textContent = data.temperature.toFixed(1) + '°C';
     document.getElementById('spo2-value').textContent = data.spo2.toFixed(1) + '%';
 
-    // Update status indicators
-    updateStatus('gsr', data.gsr, 0.5, 5.0);
-    updateStatus('temp', data.temperature, 35.0, 39.0);
-    updateStatus('spo2', data.spo2, 85, 100);
+    // Update status indicators with risk levels
+    updateSensorStatus('gsr', data.gsr, 0.5, 5.0);
+    updateSensorStatus('temp', data.temperature, 35.0, 39.0);
+    updateSensorStatus('spo2', data.spo2, 85, 100);
   }
 
-  function updateStatus(sensor, value, min, max) {
+  function updateSensorStatus(sensor, value, min, max) {
     const statusElement = document.getElementById(`${sensor}-status`);
-    const range = max - min;
-    const normalizedValue = (value - min) / range;
+    if (!statusElement) {
+        console.error(`Status element not found for sensor: ${sensor}`);
+        return;
+    }
 
-    if (normalizedValue < 0.2 || normalizedValue > 0.8) {
-      statusElement.className = 'sensor-status status-danger';
-      statusElement.textContent = 'Critical';
-    } else if (normalizedValue < 0.3 || normalizedValue > 0.7) {
-      statusElement.className = 'sensor-status status-warning';
-      statusElement.textContent = 'Warning';
-    } else {
-      statusElement.className = 'sensor-status status-normal';
-      statusElement.textContent = 'Normal';
+    if (sensor === 'gsr') {
+        if (value > 4.5) {
+            statusElement.className = 'sensor-status status-danger';
+            statusElement.textContent = 'Critical';
+        } else if (value > 3.5) {
+            statusElement.className = 'sensor-status status-warning';
+            statusElement.textContent = 'High';
+        } else if (value > 2.0) {
+            statusElement.className = 'sensor-status status-normal';
+            statusElement.textContent = 'Normal';
+        } else {
+            statusElement.className = 'sensor-status status-warning';
+            statusElement.textContent = 'Low';
+        }
+    } else if (sensor === 'temp') {
+        if (value > 38.5) {
+            statusElement.className = 'sensor-status status-danger';
+            statusElement.textContent = 'Critical';
+        } else if (value > 37.5 || value < 36.0) {
+            statusElement.className = 'sensor-status status-warning';
+            statusElement.textContent = 'High';
+        } else {
+            statusElement.className = 'sensor-status status-normal';
+            statusElement.textContent = 'Normal';
+        }
+    } else if (sensor === 'spo2') {
+        if (value < 90) {
+            statusElement.className = 'sensor-status status-danger';
+            statusElement.textContent = 'Critical';
+        } else if (value < 95) {
+            statusElement.className = 'sensor-status status-warning';
+            statusElement.textContent = 'Low';
+        } else {
+            statusElement.className = 'sensor-status status-normal';
+            statusElement.textContent = 'Normal';
+        }
     }
   }
 
@@ -885,30 +966,30 @@
     const text = indicator.querySelector('.indicator-text');
     const fill = document.getElementById('probability-fill');
     const probText = document.getElementById('probability-text');
-
-            // Ensure probability is a valid number
-            probability = parseFloat(probability) || 0;
-
+    
+    // Ensure probability is a valid number
+    probability = parseFloat(probability) || 0;
+    
     // Update probability meter
-            const percentage = Math.min(Math.max(probability * 100, 0), 100);
-            fill.style.width = `${percentage}%`;
-            probText.textContent = `${percentage.toFixed(1)}%`;
-
+    const percentage = Math.min(Math.max(probability * 100, 0), 100);
+    fill.style.width = `${percentage}%`;
+    probText.textContent = `${percentage.toFixed(1)}%`;
+    
     // Update indicator
     if (probability > 0.7) {
       dot.className = 'indicator-dot indicator-danger';
       text.textContent = 'High Risk';
-                fill.style.backgroundColor = '#dc3545';
+      fill.style.backgroundColor = '#dc3545';
     } else if (probability > 0.4) {
       dot.className = 'indicator-dot indicator-warning';
       text.textContent = 'Moderate Risk';
-                fill.style.backgroundColor = '#ffc107';
+      fill.style.backgroundColor = '#ffc107';
     } else {
       dot.className = 'indicator-dot indicator-normal';
       text.textContent = 'Low Risk';
-                fill.style.backgroundColor = '#28a745';
-            }
-        }
+      fill.style.backgroundColor = '#28a745';
+    }
+  }
 
         // Initialize with default values
         updatePrediction(0);
