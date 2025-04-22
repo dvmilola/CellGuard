@@ -777,96 +777,125 @@ def knowledge_library():
 @app.route('/api/sensor-readings', methods=['POST'])
 @login_required
 def receive_sensor_readings():
-    print("\n=== Received Sensor Readings ===")
-    print(f"Request data: {request.json}")
     try:
         data = request.json
-        if not data:
-            print("Error: No data received")
-            return jsonify({'error': 'No data received'}), 400
-
-        # Validate required fields
-        required_fields = ['gsr', 'temperature', 'spo2']
-        missing_fields = [field for field in required_fields if field not in data]
-        if missing_fields:
-            error_msg = f"Missing required fields: {', '.join(missing_fields)}"
-            print(f"Error: {error_msg}")
-            return jsonify({'error': error_msg}), 400
-
-        # Validate data types
-        try:
-            gsr = float(data['gsr'])
-            temperature = float(data['temperature'])
-            spo2 = float(data['spo2'])
-        except (ValueError, TypeError) as e:
-            error_msg = f"Invalid data types: {str(e)}"
-            print(f"Error: {error_msg}")
-            return jsonify({'error': error_msg}), 400
-
-        # Create sensor reading
+        user_id = current_user.id
+        
+        # Store sensor reading
         reading = SensorReading(
-            user_id=current_user.id,
-            gsr=gsr,
-            temperature=temperature,
-            spo2=spo2,
-            crisis_probability=0.0,
-            timestamp=datetime.utcnow()
+            user_id=user_id,
+            gsr=data['gsr'],
+            temperature=data['temperature'],
+            spo2=data['spo2'],
+            crisis_probability=0.0  # Will be updated after prediction
         )
-        print(f"Created reading: {reading}")
         db.session.add(reading)
         db.session.commit()
-        print("Reading saved to database")
-
-        # Make prediction
-        prediction_result = predict_crisis(
-            gsr=gsr,
-            temperature=temperature,
-            spo2=spo2
+        
+        # Make prediction using user-specific model if available
+        result = predict_crisis(
+            data['gsr'],
+            data['temperature'],
+            data['spo2'],
+            user_id=user_id
         )
-
-        # Create prediction
-        prediction = Prediction(
-            user_id=current_user.id,
-            gsr=gsr,
-            temperature=temperature,
-            spo2=spo2,
-            crisis_predicted=prediction_result['crisis_predicted'],
-            crisis_probability=prediction_result['crisis_probability'],
-            timestamp=datetime.utcnow()
+        
+        # Update reading with prediction
+        reading.crisis_probability = result['probability']
+        db.session.commit()
+        
+        # Store prediction
+        prediction = CrisisPrediction(
+            user_id=user_id,
+            gsr=data['gsr'],
+            temperature=data['temperature'],
+            spo2=data['spo2'],
+            crisis_predicted=bool(result['prediction']),
+            crisis_probability=result['probability'],
+            features=data,
+            recommendations=get_recommendations(result, data)
         )
-        print(f"Created prediction: {prediction}")
         db.session.add(prediction)
         db.session.commit()
-        print("Prediction saved to database")
-
-        # Prepare Socket.IO data
-        ws_data = {
-            'type': 'sensor_update',
-            'gsr': gsr,
-            'temperature': temperature,
-            'spo2': spo2,
-            'crisis_probability': prediction_result['crisis_probability'],
-            'timestamp': datetime.utcnow().isoformat()
-        }
-        print(f"[DEBUG] Emitting Socket.IO data: {ws_data}")
         
-        # Emit Socket.IO event with the new data
-        socketio.emit('sensor_update', ws_data)
-        print("[DEBUG] Socket.IO event emitted")
-
+        # Check if we should retrain user model
+        if should_retrain_user_model(user_id):
+            retrain_user_model(user_id)
+        
+        # Emit prediction to connected clients
+        socketio.emit('prediction', {
+            'user_id': user_id,
+            'prediction': result['prediction'],
+            'probability': result['probability'],
+            'model_type': result['model_type'],
+            'timestamp': result['timestamp']
+        })
+        
         return jsonify({
-            'message': 'Data received and processed successfully',
-            'reading_id': reading.id,
-            'prediction_id': prediction.id
-        }), 201
-
+            'status': 'success',
+            'prediction': result
+        })
+        
     except Exception as e:
-        print(f"Error processing sensor readings: {str(e)}")
-        db.session.rollback()
-        return jsonify({
-            'error': str(e),
-            'details': 'An error occurred while processing the sensor readings'
-        }), 500
+        logger.error(f"Error processing sensor readings: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+def should_retrain_user_model(user_id):
+    """Check if we should retrain the user's model"""
+    try:
+        # Get count of new readings since last training
+        last_training = db.session.query(CrisisPrediction).filter_by(
+            user_id=user_id
+        ).order_by(CrisisPrediction.timestamp.desc()).first()
+        
+        if not last_training:
+            return False
+            
+        new_readings = db.session.query(SensorReading).filter(
+            SensorReading.user_id == user_id,
+            SensorReading.timestamp > last_training.timestamp
+        ).count()
+        
+        # Retrain if we have at least 50 new readings
+        return new_readings >= 50
+        
+    except Exception as e:
+        logger.error(f"Error checking retrain condition: {str(e)}")
+        return False
+
+def retrain_user_model(user_id):
+    """Retrain the user's model with their historical data"""
+    try:
+        # Get user's historical data
+        readings = db.session.query(SensorReading).filter_by(
+            user_id=user_id
+        ).all()
+        
+        symptoms = db.session.query(Symptom).filter_by(
+            user_id=user_id
+        ).all()
+        
+        if not readings or not symptoms:
+            logger.warning(f"Not enough data to retrain model for user {user_id}")
+            return False
+            
+        # Convert to lists of dictionaries
+        readings_data = [r.to_dict() for r in readings]
+        symptoms_data = [s.to_dict() for s in symptoms]
+        
+        # Train new model
+        success = prediction_model.train_user_model(user_id, readings_data, symptoms_data)
+        
+        if success:
+            logger.info(f"Successfully retrained model for user {user_id}")
+            return True
+        else:
+            logger.error(f"Failed to retrain model for user {user_id}")
+            return False
+            
+    except Exception as e:
+        logger.error(f"Error retraining user model: {str(e)}")
+        return False
 
 @app.route('/api/sensor-readings', methods=['GET'])
 @login_required
