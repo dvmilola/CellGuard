@@ -10,10 +10,8 @@ import pandas as pd
 import numpy as np
 from datetime import datetime, timedelta
 import os
-import joblib
 from flask_sqlalchemy import SQLAlchemy
 from werkzeug.security import generate_password_hash, check_password_hash
-from ml_model import predict_crisis, load_model  # Import load_model function
 from flask_cors import CORS
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_migrate import Migrate
@@ -23,7 +21,6 @@ from models import (
     MedicationRefill, Symptom, CrisisPrediction
 )
 from flask_socketio import SocketIO, emit
-from sensor_interface import SensorInterface
 import threading
 import time
 
@@ -60,81 +57,59 @@ socketio = SocketIO(app,
     engineio_logger=True
 )
 
-# Add global variables for sensor control
-sensor_interface = None
-monitoring_thread = None
-is_monitoring = False
-
-# Global variable to track monitoring state
-is_monitoring = False
-monitoring_thread = None
-
-# Initialize the model
-model = load_model()
-
-def start_sensor_monitoring(user_id):
-    """Background thread for continuous sensor monitoring"""
-    global is_monitoring
-    
+@app.route('/api/sensor-readings', methods=['POST'])
+@login_required
+def receive_sensor_readings():
     try:
-        # Initialize sensor interface
-        sensor_interface = SensorInterface()
+        data = request.json
+        user_id = current_user.id
         
-        # Calibrate GSR sensor
-        baseline = sensor_interface.calibrate_gsr()
-        logger.info(f"GSR baseline: {baseline:.2f} µS")
+        # Store sensor reading
+        reading = SensorReading(
+            user_id=user_id,
+            gsr=data['gsr'],
+            temperature=data['temperature'],
+            spo2=data['spo2'],
+            crisis_probability=data['probability']
+        )
+        db.session.add(reading)
+        db.session.commit()
         
-        def process_readings(readings):
-            if not is_monitoring:
-                return
-                
-            try:
-                with app.app_context():
-                    # Create sensor reading
-                    reading = SensorReading(
-                        user_id=user_id,
-                        gsr=readings['gsr'],
-                        temperature=readings['temperature'],
-                        spo2=readings['spo2'],
-                        timestamp=datetime.fromisoformat(readings['timestamp'])
-                    )
-                    db.session.add(reading)
-                    
-                    # Make prediction
-                    features = np.array([[readings['gsr'], readings['temperature'], readings['spo2']]])
-                    prediction = model.predict(features)[0]
-                    probability = model.predict_proba(features)[0][1]
-                    
-                    # Create prediction record
-                    prediction_record = Prediction(
-                        user_id=user_id,
-                        reading_id=reading.id,
-                        prediction=prediction,
-                        probability=probability,
-                        timestamp=datetime.now()
-                    )
-                    db.session.add(prediction_record)
-                    db.session.commit()
-                    
-                    # Emit real-time update
-                    socketio.emit('sensor_update', {
-                        'gsr': readings['gsr'],
-                        'temperature': readings['temperature'],
-                        'spo2': readings['spo2'],
-                        'prediction': prediction,
-                        'probability': probability,
-                        'timestamp': readings['timestamp']
-                    })
-                    
-            except Exception as e:
-                logger.error(f"Error processing readings: {str(e)}")
+        # Store prediction
+        prediction = CrisisPrediction(
+            user_id=user_id,
+            gsr=data['gsr'],
+            temperature=data['temperature'],
+            spo2=data['spo2'],
+            crisis_predicted=bool(data['prediction']),
+            crisis_probability=data['probability'],
+            features=data,
+            recommendations=get_recommendations({
+                'prediction': data['prediction'],
+                'probability': data['probability']
+            }, data)
+        )
+        db.session.add(prediction)
+        db.session.commit()
         
-        # Start continuous monitoring
-        sensor_interface.continuous_monitoring(process_readings)
+        # Emit prediction to connected clients
+        socketio.emit('sensor_update', {
+            'user_id': user_id,
+            'prediction': data['prediction'],
+            'probability': data['probability'],
+            'timestamp': data['timestamp'],
+            'gsr': data['gsr'],
+            'temperature': data['temperature'],
+            'spo2': data['spo2']
+        })
         
+        return jsonify({
+            'status': 'success',
+            'message': 'Readings and prediction stored successfully'
+        })
     except Exception as e:
-        logger.error(f"Error in monitoring thread: {str(e)}")
-        is_monitoring = False
+        logger.error(f"Error storing readings: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -298,7 +273,7 @@ def predictions():
     print(f"Found {len(predictions)} predictions")
     return render_template('predictions.html', 
                          predictions=predictions,
-                         is_monitoring=is_monitoring)
+                         is_monitoring=False)  # Initialize monitoring state as False
 
 @app.route('/emergency')
 @login_required
@@ -774,129 +749,6 @@ def knowledge_library():
         print(f"Template path: {app.template_folder}")
         return "Error loading page", 500
 
-@app.route('/api/sensor-readings', methods=['POST'])
-@login_required
-def receive_sensor_readings():
-    try:
-        data = request.json
-        user_id = current_user.id
-        
-        # Store sensor reading
-        reading = SensorReading(
-            user_id=user_id,
-            gsr=data['gsr'],
-            temperature=data['temperature'],
-            spo2=data['spo2'],
-            crisis_probability=0.0  # Will be updated after prediction
-        )
-        db.session.add(reading)
-        db.session.commit()
-        
-        # Make prediction using user-specific model if available
-        result = predict_crisis(
-            data['gsr'],
-            data['temperature'],
-            data['spo2'],
-            user_id=user_id
-        )
-        
-        # Update reading with prediction
-        reading.crisis_probability = result['probability']
-        db.session.commit()
-        
-        # Store prediction
-        prediction = CrisisPrediction(
-            user_id=user_id,
-            gsr=data['gsr'],
-            temperature=data['temperature'],
-            spo2=data['spo2'],
-            crisis_predicted=bool(result['prediction']),
-            crisis_probability=result['probability'],
-            features=data,
-            recommendations=get_recommendations(result, data)
-        )
-        db.session.add(prediction)
-        db.session.commit()
-        
-        # Check if we should retrain user model
-        if should_retrain_user_model(user_id):
-            retrain_user_model(user_id)
-        
-        # Emit prediction to connected clients
-        socketio.emit('prediction', {
-            'user_id': user_id,
-            'prediction': result['prediction'],
-            'probability': result['probability'],
-            'model_type': result['model_type'],
-            'timestamp': result['timestamp']
-        })
-        
-        return jsonify({
-            'status': 'success',
-            'prediction': result
-        })
-        
-    except Exception as e:
-        logger.error(f"Error processing sensor readings: {str(e)}")
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-def should_retrain_user_model(user_id):
-    """Check if we should retrain the user's model"""
-    try:
-        # Get count of new readings since last training
-        last_training = db.session.query(CrisisPrediction).filter_by(
-            user_id=user_id
-        ).order_by(CrisisPrediction.timestamp.desc()).first()
-        
-        if not last_training:
-            return False
-            
-        new_readings = db.session.query(SensorReading).filter(
-            SensorReading.user_id == user_id,
-            SensorReading.timestamp > last_training.timestamp
-        ).count()
-        
-        # Retrain if we have at least 50 new readings
-        return new_readings >= 50
-        
-    except Exception as e:
-        logger.error(f"Error checking retrain condition: {str(e)}")
-        return False
-
-def retrain_user_model(user_id):
-    """Retrain the user's model with their historical data"""
-    try:
-        # Get user's historical data
-        readings = db.session.query(SensorReading).filter_by(
-            user_id=user_id
-        ).all()
-        
-        symptoms = db.session.query(Symptom).filter_by(
-            user_id=user_id
-        ).all()
-        
-        if not readings or not symptoms:
-            logger.warning(f"Not enough data to retrain model for user {user_id}")
-            return False
-            
-        # Convert to lists of dictionaries
-        readings_data = [r.to_dict() for r in readings]
-        symptoms_data = [s.to_dict() for s in symptoms]
-        
-        # Train new model
-        success = prediction_model.train_user_model(user_id, readings_data, symptoms_data)
-        
-        if success:
-            logger.info(f"Successfully retrained model for user {user_id}")
-            return True
-        else:
-            logger.error(f"Failed to retrain model for user {user_id}")
-            return False
-            
-    except Exception as e:
-        logger.error(f"Error retraining user model: {str(e)}")
-        return False
-
 @app.route('/api/sensor-readings', methods=['GET'])
 @login_required
 def get_sensor_readings():
@@ -935,43 +787,6 @@ def handle_message(message):
             emit('message', {'status': 'connection_verified'})
     except Exception as e:
         print(f'[ERROR] Error handling WebSocket message: {str(e)}')
-
-@app.route('/api/start-monitoring', methods=['POST'])
-@login_required
-def start_monitoring():
-    global is_monitoring, monitoring_thread
-    
-    try:
-        if not is_monitoring:
-            is_monitoring = True
-            monitoring_thread = threading.Thread(
-                target=start_sensor_monitoring,
-                args=(current_user.id,)
-            )
-            monitoring_thread.daemon = True
-            monitoring_thread.start()
-            logger.info("Started sensor monitoring")
-            return jsonify({'status': 'success', 'message': 'Monitoring started'})
-        else:
-            return jsonify({'status': 'info', 'message': 'Monitoring already running'})
-    except Exception as e:
-        logger.error(f"Error starting monitoring: {str(e)}")
-        is_monitoring = False
-        return jsonify({'status': 'error', 'message': str(e)}), 500
-
-@app.route('/api/stop-monitoring', methods=['POST'])
-@login_required
-def stop_monitoring():
-    global is_monitoring, monitoring_thread
-    
-    if is_monitoring:
-        is_monitoring = False
-        if monitoring_thread:
-            monitoring_thread.join(timeout=1.0)
-        logger.info("Stopped sensor monitoring")
-        return jsonify({'status': 'success', 'message': 'Monitoring stopped'})
-    else:
-        return jsonify({'status': 'info', 'message': 'Monitoring not running'})
 
 # Make sure templates directory exists
 os.makedirs('templates', exist_ok=True)

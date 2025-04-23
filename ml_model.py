@@ -19,10 +19,9 @@ class CrisisPredictionModel:
     def load_global_model(self):
         """Load the global trained model, scaler, and threshold"""
         try:
-            self.global_model = joblib.load('crisis_model_20250422_024149.joblib')
-            self.scaler = joblib.load('crisis_scaler_20250422_024149.joblib')
-            with open('crisis_threshold_20250422_024149.txt', 'r') as f:
-                self.threshold = float(f.read().strip())
+            self.global_model = joblib.load('models/crisis_model_20250423_011731.joblib')
+            self.scaler = joblib.load('models/scaler_20250423_011731.joblib')
+            self.threshold = 0.5717901297415591  # Using the optimal threshold from training
             print("Global model loaded successfully")
         except Exception as e:
             print(f"Error loading global model: {e}")
@@ -168,11 +167,80 @@ def load_model():
         print(f"[ERROR] Failed to load model: {str(e)}")
         raise
 
-def predict_crisis(gsr, temperature, spo2, user_id=None):
+def predict_crisis(gsr, temperature, spo2, age=30, gender=0, dehydration=0):
     """Make a prediction using the appropriate model"""
     try:
+        # Create a DataFrame with the raw features
+        features = pd.DataFrame({
+            'SpO2 (%)': [spo2],
+            'Temperature (°C)': [temperature],
+            'Dehydration_Label': [dehydration],
+            'Age': [age],
+            'Gender': [gender],
+            'GSR Value': [gsr]
+        })
+        
+        # Calculate risk tiers
+        features['spo2_critical'] = int(spo2 < 80) * 4
+        features['spo2_severe'] = int(80 <= spo2 < 85) * 3
+        features['spo2_moderate'] = int(85 <= spo2 < 90) * 2
+        features['spo2_mild'] = int(90 <= spo2 < 95)
+        
+        features['temp_critical'] = int(temperature > 39.5) * 4
+        features['temp_severe'] = int(38.5 < temperature <= 39.5) * 3
+        features['temp_moderate'] = int(38.0 < temperature <= 38.5) * 2
+        features['temp_mild'] = int(37.5 < temperature <= 38.0)
+        features['temp_low'] = int(temperature < 36.0) * 2
+        
+        features['dehydration_critical'] = int(dehydration >= 2) * 3
+        features['dehydration_moderate'] = int(dehydration == 1) * 1.5
+        
+        # Calculate transformations
+        features['exp_temp'] = np.exp(temperature - 37.0)
+        features['exp_spo2'] = np.exp((100 - spo2) / 10)
+        features['log_gsr'] = np.log1p(gsr)
+        
+        # Calculate age-related features
+        features['is_child'] = int(age < 12) * 2
+        features['is_elderly'] = int(age > 65) * 2
+        features['age_risk'] = features['is_child'] + features['is_elderly']
+        
+        # Calculate age group
+        age_bins = [0, 2, 5, 12, 18, 40, 65, 75, 85, 100]
+        age_labels = list(range(len(age_bins)-1))
+        features['age_group'] = pd.cut([age], bins=age_bins, labels=age_labels)[0]
+        
+        # Calculate interactions
+        features['temp_spo2_critical'] = features['temp_critical'] * features['spo2_critical']
+        features['temp_spo2_interaction'] = temperature * (100 - spo2)
+        
+        features['age_temp_risk'] = (1 + 0.5 * features['age_risk']) * (1 + features['temp_critical'] + 0.5 * features['temp_severe'])
+        features['age_spo2_risk'] = (1 + 0.5 * features['age_risk']) * (1 + features['spo2_critical'] + 0.5 * features['spo2_severe'])
+        
+        # Calculate clinical scores
+        features['clinical_risk_score'] = (
+            features['spo2_critical'] * 2 + features['spo2_severe'] * 1.5 + features['spo2_moderate'] + features['spo2_mild'] * 0.5 +
+            features['temp_critical'] * 2 + features['temp_severe'] * 1.5 + features['temp_moderate'] + features['temp_mild'] * 0.5 +
+            features['dehydration_critical'] * 1.5 + features['dehydration_moderate'] +
+            features['age_risk']
+        )
+        
+        features['medical_risk_score'] = (
+            ((100 - spo2) / 5) +              # Oxygen deficit
+            ((temperature - 37.0) * 3) +      # Temperature deviation
+            (dehydration * 2) +               # Dehydration factor
+            (features['age_risk'])            # Age risk
+        )
+        
+        # Calculate GSR features
+        gsr_mean = 10.5  # Approximate mean from training data
+        gsr_std = 5.0    # Approximate std from training data
+        features['gsr_norm'] = (gsr - gsr_mean) / gsr_std
+        features['gsr_norm'] = np.clip(features['gsr_norm'], -3, 3)
+        features['gsr_clinical'] = features['gsr_norm'] * features['clinical_risk_score']
+        
         # Make prediction
-        result = prediction_model.predict([gsr, temperature, spo2], user_id)
+        result = prediction_model.predict(features.values, None)
         
         return {
             'prediction': int(result['prediction']),

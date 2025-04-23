@@ -92,14 +92,26 @@ class SensorClient:
             sys.exit(1)
         
     def send_readings(self, readings):
-        """Send sensor readings to the server."""
+        """Send sensor readings and predictions to the server."""
         try:
             print("\n=== Sending Sensor Readings ===")
             print(f"Readings to send: {readings}")
             
+            # Make prediction using the ML model
+            prediction = self.sensors.process_sensor_data(readings)
+            
+            # Combine readings and prediction
+            data = {
+                **readings,
+                'prediction': prediction['prediction'],
+                'probability': prediction['probability'],
+                'threshold': prediction['threshold'],
+                'timestamp': prediction['timestamp']
+            }
+            
             response = self.session.post(
                 f"{self.server_url}/api/sensor-readings",
-                json=readings,
+                json=data,
                 timeout=5,
                 headers={
                     'Content-Type': 'application/json',
@@ -109,8 +121,8 @@ class SensorClient:
             print(f"Response status: {response.status_code}")
             print(f"Response content: {response.text}")
             
-            if response.status_code == 201:
-                print("Successfully sent readings")
+            if response.status_code in [200, 201]:
+                print("Successfully sent readings and prediction")
                 self.retry_count = 0  # Reset retry count on success
             else:
                 print(f"Failed to send readings (status {response.status_code})")

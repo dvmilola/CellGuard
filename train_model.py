@@ -582,7 +582,7 @@ def main(data_path, save_dir='models'):
 
 if __name__ == "__main__":
     # Define data path
-    data_file = "final_dataset.csv"  # Using the correct data file name
+    data_file = "final_dataset_rescaled.csv"  # Using the rescaled data file
     
     # Run the pipeline
     main(data_file)

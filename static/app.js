@@ -725,4 +725,36 @@ document.addEventListener('DOMContentLoaded', function() {
       })
       .catch(error => console.error('Error loading stats:', error));
   }
+  
+  // Update crisis prediction
+  function updatePrediction(probability) {
+    const indicator = document.getElementById('crisis-indicator');
+    const dot = indicator.querySelector('.indicator-dot');
+    const text = indicator.querySelector('.indicator-text');
+    const fill = document.getElementById('probability-fill');
+    const probText = document.getElementById('probability-text');
+    
+    // Ensure probability is a valid number
+    probability = parseFloat(probability) || 0;
+    
+    // Update probability meter
+    const percentage = Math.min(Math.max(probability * 100, 0), 100);
+    fill.style.width = `${percentage}%`;
+    probText.textContent = `${percentage.toFixed(1)}%`;
+    
+    // Update indicator
+    if (probability > 0.7) {
+      dot.className = 'indicator-dot indicator-danger';
+      text.textContent = `High Risk (${percentage.toFixed(1)}%)`;
+      fill.style.backgroundColor = '#dc3545';
+    } else if (probability > 0.4) {
+      dot.className = 'indicator-dot indicator-warning';
+      text.textContent = `Moderate Risk (${percentage.toFixed(1)}%)`;
+      fill.style.backgroundColor = '#ffc107';
+    } else {
+      dot.className = 'indicator-dot indicator-normal';
+      text.textContent = `Low Risk (${percentage.toFixed(1)}%)`;
+      fill.style.backgroundColor = '#28a745';
+    }
+  }
 });
