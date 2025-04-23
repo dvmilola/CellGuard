@@ -233,8 +233,8 @@ def predict_crisis(gsr, temperature, spo2, age=30, gender=0, dehydration=0):
         )
         
         # Calculate GSR features
-        gsr_mean = 10.5  # Approximate mean from training data
-        gsr_std = 5.0    # Approximate std from training data
+        gsr_mean = 850.0  # Updated mean to account for wider range
+        gsr_std = 350.0   # Increased std to handle spikes
         features['gsr_norm'] = (gsr - gsr_mean) / gsr_std
         features['gsr_norm'] = np.clip(features['gsr_norm'], -3, 3)
         features['gsr_clinical'] = features['gsr_norm'] * features['clinical_risk_score']
