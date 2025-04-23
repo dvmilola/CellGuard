@@ -5,92 +5,223 @@ import random
 import logging
 import numpy as np
 from ml_model import CrisisPredictionModel
+import math
+from periphery import I2C
+import smbus
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+### ---------- GSR SENSOR (PCF8591) SETUP ---------- ###
+
 class SensorInterface:
     def __init__(self):
         self.is_macos = platform.system() == 'Darwin'
-        self.sensor_current = 0.001  # 1 mA assumed sensor current
         self.model = CrisisPredictionModel()
+        
+        # Feature names for model preprocessing
         self.feature_names = [
+            # Raw vital signs (3)
             'SpO2 (%)', 'Temperature (°C)', 'Dehydration_Label',
+            
+            # Demographics (6)
             'Age', 'Gender', 'age_group', 'is_child', 'is_elderly', 'age_risk',
-            'spo2_critical', 'spo2_severe', 'spo2_moderate', 'spo2_mild',
-            'temp_critical', 'temp_severe', 'temp_moderate', 'temp_mild', 'temp_low',
+            
+            # Risk tiers (10)
+            'spo2_critical', 'spo2_severe', 'spo2_moderate',
+            'temp_critical', 'temp_severe', 'temp_moderate', 'temp_low',
             'dehydration_critical', 'dehydration_moderate',
+            
+            # Transformations (2)
             'exp_temp', 'exp_spo2',
+            
+            # Interactions (4)
             'temp_spo2_critical', 'temp_spo2_interaction',
             'age_temp_risk', 'age_spo2_risk',
+            
+            # Clinical scores (2)
             'clinical_risk_score', 'medical_risk_score'
         ]
         
         if not self.is_macos:
             try:
-                # Import Raspberry Pi specific modules
-                import board
-                import busio
-                import adafruit_ads1x15.ads1115 as ADS
-                from adafruit_ads1x15.analog_in import AnalogIn
+                # Initialize I2C bus for GSR
+                self.bus = smbus.SMBus(1)
+                self.GSR_ADDRESS = 0x48
+                self.sensor_current = 0.001  # 1 mA assumed
                 
-                # Initialize I2C bus
-                self.i2c = busio.I2C(board.SCL, board.SDA)
+                # Initialize I2C for MAX30102
+                self.i2c = I2C("/dev/i2c-1")
+                self.MAX30102_ADDR = 0x57
                 
-                # Initialize ADS1115 for GSR
-                self.ads = ADS.ADS1115(self.i2c)
-                self.gsr_channel = AnalogIn(self.ads, ADS.P0)
+                # MAX30102 registers
+                self.REG_FIFO_DATA = 0x07
+                self.REG_MODE_CONFIG = 0x09
+                self.REG_SPO2_CONFIG = 0x0A
+                self.REG_LED1_PA = 0x0C
+                self.REG_LED2_PA = 0x0D
+                self.REG_INT_ENABLE = 0x02
+                self.REG_PART_ID = 0xFF
+                self.REG_FIFO_WR_PTR = 0x04
+                self.REG_OVF_COUNTER = 0x05
+                self.REG_FIFO_RD_PTR = 0x06
                 
-                logger.info("Successfully initialized GSR sensor")
-            except ImportError as e:
-                logger.error(f"Failed to import Raspberry Pi modules: {str(e)}")
+                # Setup MAX30102
+                self._setup_sensor()
+                
+                logger.info("Successfully initialized sensors")
+            except Exception as e:
+                logger.error(f"Failed to initialize sensors: {str(e)}")
                 logger.error("Running in simulation mode")
                 self.is_macos = True
-            except Exception as e:
-                logger.error(f"Failed to initialize GSR sensor: {str(e)}")
-                logger.error("Please check if I2C is enabled and ADS1115 is connected")
-                raise
         else:
             logger.info("Running in simulation mode on macOS")
-            self.baseline_gsr = 300  # Simulated baseline GSR value
-            
+
+    def _write_register(self, reg, value):
+        self.i2c.transfer(self.MAX30102_ADDR, [I2C.Message([reg, value])])
+
+    def _read_register(self, reg):
+        messages = [I2C.Message([reg]), I2C.Message(bytearray(1), read=True)]
+        self.i2c.transfer(self.MAX30102_ADDR, messages)
+        return messages[1].data[0]
+
+    def _setup_sensor(self):
+        self._write_register(self.REG_MODE_CONFIG, 0x40)
+        time.sleep(0.1)
+        while self._read_register(self.REG_MODE_CONFIG) & 0x40:
+            time.sleep(0.1)
+        self._reset_sensor()
+        self._write_register(self.REG_MODE_CONFIG, 0x03)
+        self._write_register(self.REG_SPO2_CONFIG, 0x27)
+        self._write_register(self.REG_LED1_PA, 0x24)
+        self._write_register(self.REG_LED2_PA, 0x24)
+        self._write_register(self.REG_INT_ENABLE, 0x10)
+
+    def _reset_sensor(self):
+        self._write_register(self.REG_FIFO_WR_PTR, 0x00)
+        self._write_register(self.REG_OVF_COUNTER, 0x00)
+        self._write_register(self.REG_FIFO_RD_PTR, 0x00)
+
+    def _read_fifo(self):
+        messages = [I2C.Message([self.REG_FIFO_DATA]), I2C.Message(bytearray(6), read=True)]
+        self.i2c.transfer(self.MAX30102_ADDR, messages)
+        data = messages[1].data
+        red = (data[0] << 16 | data[1] << 8 | data[2]) & 0x3FFFF
+        ir = (data[3] << 16 | data[4] << 8 | data[5]) & 0x3FFFF
+        return red, ir
+
     def read_gsr(self):
-        """Read GSR value from ADS1115 or simulate reading on macOS"""
+        """Read GSR value from sensor"""
         if self.is_macos:
-            # Simulate GSR readings around baseline with some noise
-            noise = random.uniform(-50, 50)
-            return max(0, self.baseline_gsr + noise)
+            logger.error("GSR sensor not available in simulation mode")
+            return 0, 0, 0
             
         try:
-            # Read voltage from ADS1115
-            voltage = self.gsr_channel.voltage
-            
-            # Convert to conductance (microsiemens)
-            conductance = (self.sensor_current / voltage) * 1e6 if voltage > 0 else 0
-            
-            logger.debug(f"GSR reading: {conductance:.2f} µS")
-            return conductance
-            
-        except Exception as e:
-            logger.error(f"Error reading GSR: {str(e)}")
-            return 0
+            self.bus.write_byte(self.GSR_ADDRESS, 0x40)
+            self.bus.read_byte(self.GSR_ADDRESS)
+            time.sleep(0.01)
+            adc_value = self.bus.read_byte(self.GSR_ADDRESS)
+        except IOError as e:
+            logger.error(f"GSR I2C read error: {e}")
+            return 0, 0, 0
+
+        voltage = (adc_value / 255.0) * 3.3
+        conductance = (self.sensor_current / voltage) * 1e6 if voltage > 0 else 0
+        return adc_value, voltage, conductance
+
+    def get_average_gsr(self, duration=10):
+        """Get average GSR readings over specified duration"""
+        total_adc = total_voltage = total_conductance = 0
+        readings = 0
+        logger.info(f"[GSR] Collecting data for {duration} seconds...")
+        start_time = time.time()
+
+        while time.time() - start_time < duration:
+            adc, volt, cond = self.read_gsr()
+            total_adc += adc
+            total_voltage += volt
+            total_conductance += cond
+            readings += 1
+            time.sleep(0.1)
+
+        if readings == 0:
+            return 0, 0, 0
+
+        return total_adc / readings, total_voltage / readings, total_conductance / readings
 
     def read_temperature(self):
-        """Simulate temperature reading"""
-        # Simulate temperature readings around normal body temperature
-        return 36.5 + random.uniform(-0.5, 0.5)  # Normal range: 36-37°C
+        """Read temperature from sensor"""
+        if self.is_macos:
+            logger.error("Temperature sensor not available in simulation mode")
+            return 0
+            
+        try:
+            # Read temperature from sensor
+            # TODO: Implement actual temperature sensor reading
+            logger.error("Temperature sensor not implemented")
+            return 0
+        except Exception as e:
+            logger.error(f"Error reading temperature: {str(e)}")
+            return 0
 
     def read_spo2(self):
-        """Simulate SpO2 reading"""
-        # Simulate SpO2 readings around normal range
-        return 98 + random.uniform(-2, 0)  # Normal range: 96-100%
+        """Read SpO2 from MAX30102 sensor"""
+        if self.is_macos:
+            logger.error("SpO2 sensor not available in simulation mode")
+            return 0
             
+        try:
+            red_readings = []
+            ir_readings = []
+            logger.info("[MAX30102] Reading in 3 seconds...")
+            time.sleep(3)
+            self._reset_sensor()
+            start = time.time()
+            while time.time() - start < 10:  # Collect data for 10 seconds
+                try:
+                    red, ir = self._read_fifo()
+                    if ir > 1000:
+                        red_readings.append(red)
+                        ir_readings.append(ir)
+                except:
+                    continue
+                time.sleep(0.01)  # 100Hz sampling rate
+                
+            if len(red_readings) >= 100:
+                spo2 = self._calculate_spo2(red_readings, ir_readings)
+                logger.info(f"SpO₂: {spo2}%")
+                return spo2
+            else:
+                logger.error(f"Not enough data from MAX30102. Got {len(red_readings)} readings")
+                return 0
+                
+        except Exception as e:
+            logger.error(f"Error reading SpO2: {str(e)}")
+            return 0
+
+    def _calculate_spo2(self, red, ir):
+        """Calculate SpO2 from red and IR readings"""
+        if len(red) < 100:
+            return 0
+            
+        r_mean = sum(red) / len(red)
+        ir_mean = sum(ir) / len(ir)
+        
+        r_rms = math.sqrt(sum([(x - r_mean)**2 for x in red]) / len(red))
+        ir_rms = math.sqrt(sum([(x - ir_mean)**2 for x in ir]) / len(ir))
+        
+        r = (r_rms / r_mean) / (ir_rms / ir_mean)
+        spo2 = 110 - 25 * r
+        
+        return round(spo2, 1) if 70 <= spo2 <= 100 else 0
+
     def calibrate_gsr(self, duration=10):
         """Calibrate GSR sensor by taking average readings over duration seconds"""
         if self.is_macos:
             logger.info("Simulating GSR calibration...")
             time.sleep(2)
+            self.baseline_gsr = 300  # Simulated baseline GSR value
             logger.info(f"GSR baseline: {self.baseline_gsr:.2f} µS")
             return self.baseline_gsr
             
@@ -101,21 +232,23 @@ class SensorInterface:
         
         try:
             while time.time() - start_time < duration:
-                conductance = self.read_gsr()
+                _, _, conductance = self.read_gsr()
                 if conductance > 0:
                     total_conductance += conductance
                     readings += 1
                 time.sleep(0.1)
                 
             if readings > 0:
-                baseline = total_conductance / readings
-                logger.info(f"GSR baseline: {baseline:.2f} µS")
-                return baseline
+                self.baseline_gsr = total_conductance / readings
+                logger.info(f"GSR baseline: {self.baseline_gsr:.2f} µS")
+                return self.baseline_gsr
             else:
                 logger.error("No valid GSR readings during calibration")
+                self.baseline_gsr = 0
                 return 0
         except Exception as e:
             logger.error(f"Error during GSR calibration: {str(e)}")
+            self.baseline_gsr = 0
             return 0
         
     def continuous_monitoring(self, callback, interval=1.0):
@@ -123,9 +256,9 @@ class SensorInterface:
         while True:
             try:
                 # Get GSR reading
-                gsr = self.read_gsr()
+                _, _, gsr = self.read_gsr()
                 
-                # Simulate temperature and SpO2 readings
+                # Get temperature and SpO2 readings
                 temperature = self.read_temperature()
                 spo2 = self.read_spo2()
                 
@@ -161,48 +294,43 @@ class SensorInterface:
             
             # Calculate derived features
             features = {
+                # Raw vital signs
                 'SpO2 (%)': spo2,
                 'Temperature (°C)': temp,
                 'Dehydration_Label': dehydration,
+                
+                # Demographics
                 'Age': age,
                 'Gender': gender,
-                
-                # Age-related features
-                'is_child': 1 if age < 12 else 0,
-                'is_elderly': 1 if age > 65 else 0,
-                'age_risk': (1 if age < 12 else 0) + (1 if age > 65 else 0),
                 'age_group': self._get_age_group(age),
+                'is_child': int(age < 12),
+                'is_elderly': int(age > 65),
+                'age_risk': int(age < 12) + int(age > 65),
                 
-                # SpO2 risk levels
-                'spo2_critical': 1 if spo2 < 80 else 0,
-                'spo2_severe': 1 if 80 <= spo2 < 85 else 0,
-                'spo2_moderate': 1 if 85 <= spo2 < 90 else 0,
-                'spo2_mild': 1 if 90 <= spo2 < 95 else 0,
-                
-                # Temperature risk levels
-                'temp_critical': 1 if temp > 39.5 else 0,
-                'temp_severe': 1 if 38.5 < temp <= 39.5 else 0,
-                'temp_moderate': 1 if 38.0 < temp <= 38.5 else 0,
-                'temp_mild': 1 if 37.5 < temp <= 38.0 else 0,
-                'temp_low': 1 if temp < 36.0 else 0,
-                
-                # Dehydration risk
-                'dehydration_critical': 1 if dehydration >= 2 else 0,
-                'dehydration_moderate': 1 if dehydration == 1 else 0,
+                # Risk tiers
+                'spo2_critical': int(spo2 < 80) * 4,
+                'spo2_severe': int((spo2 >= 80) & (spo2 < 85)) * 3,
+                'spo2_moderate': int((spo2 >= 85) & (spo2 < 90)) * 2,
+                'temp_critical': int(temp > 39.5) * 4,
+                'temp_severe': int((temp > 38.5) & (temp <= 39.5)) * 3,
+                'temp_moderate': int((temp > 38.0) & (temp <= 38.5)) * 2,
+                'temp_low': int(temp < 37.5) * 1,
+                'dehydration_critical': int(dehydration >= 2) * 3,
+                'dehydration_moderate': int(dehydration == 1) * 1.5,
                 
                 # Transformations
                 'exp_temp': np.exp(temp - 37.0),
                 'exp_spo2': np.exp((100 - spo2) / 10),
                 
                 # Interactions
-                'temp_spo2_critical': (1 if temp > 39.5 else 0) * (1 if spo2 < 80 else 0),
+                'temp_spo2_critical': int(temp > 39.5) * int(spo2 < 80),
                 'temp_spo2_interaction': temp * (100 - spo2),
                 
                 # Age-weighted risks
-                'age_temp_risk': (1 + 0.5 * ((1 if age < 12 else 0) + (1 if age > 65 else 0))) * 
-                                (1 + (1 if temp > 39.5 else 0) + 0.5 * (1 if 38.5 < temp <= 39.5 else 0)),
-                'age_spo2_risk': (1 + 0.5 * ((1 if age < 12 else 0) + (1 if age > 65 else 0))) * 
-                                (1 + (1 if spo2 < 80 else 0) + 0.5 * (1 if 80 <= spo2 < 85 else 0)),
+                'age_temp_risk': (1 + 0.5 * (int(age < 12) + int(age > 65))) * 
+                                (1 + int(temp > 39.5) + 0.5 * int((temp > 38.5) & (temp <= 39.5))),
+                'age_spo2_risk': (1 + 0.5 * (int(age < 12) + int(age > 65))) * 
+                                (1 + int(spo2 < 80) + 0.5 * int((spo2 >= 80) & (spo2 < 85))),
                 
                 # Clinical scores
                 'clinical_risk_score': self._calculate_clinical_risk_score(spo2, temp, dehydration, age),
@@ -211,6 +339,11 @@ class SensorInterface:
             
             # Convert to array in correct order
             feature_array = [features[name] for name in self.feature_names]
+            
+            # Ensure we have exactly 26 features
+            if len(feature_array) != 26:
+                logger.error(f"Expected 26 features but got {len(feature_array)}")
+                raise ValueError(f"Expected 26 features but got {len(feature_array)}")
             
             return feature_array
             
@@ -228,40 +361,14 @@ class SensorInterface:
     
     def _calculate_clinical_risk_score(self, spo2, temp, dehydration, age):
         """Calculate clinical risk score"""
-        score = 0
-        
-        # SpO2 contribution
-        if spo2 < 80:
-            score += 4
-        elif spo2 < 85:
-            score += 3
-        elif spo2 < 90:
-            score += 2
-        elif spo2 < 95:
-            score += 1
-        
-        # Temperature contribution
-        if temp > 39.5:
-            score += 4
-        elif temp > 38.5:
-            score += 3
-        elif temp > 38.0:
-            score += 2
-        elif temp > 37.5:
-            score += 1
-        elif temp < 36.0:
-            score += 2
-        
-        # Dehydration contribution
-        if dehydration >= 2:
-            score += 3
-        elif dehydration == 1:
-            score += 1.5
-        
-        # Age risk contribution
-        if age < 12 or age > 65:
-            score += 2
-        
+        score = (
+            int(spo2 < 80) * 2 + int((spo2 >= 80) & (spo2 < 85)) * 1.5 + 
+            int((spo2 >= 85) & (spo2 < 90)) + int((spo2 >= 90) & (spo2 < 95)) * 0.5 +
+            int(temp > 39.5) * 2 + int((temp > 38.5) & (temp <= 39.5)) * 1.5 + 
+            int((temp > 38.0) & (temp <= 38.5)) + int((temp > 37.5) & (temp <= 38.0)) * 0.5 +
+            int(dehydration >= 2) * 1.5 + int(dehydration == 1) +
+            (int(age < 12) + int(age > 65))
+        )
         return score
     
     def _calculate_medical_risk_score(self, spo2, temp, dehydration, age):
@@ -269,8 +376,8 @@ class SensorInterface:
         score = (
             ((100 - spo2) / 5) +              # Oxygen deficit
             ((temp - 37.0) * 3) +             # Temperature deviation
-            (dehydration * 2) +                # Dehydration factor
-            (2 if age < 12 or age > 65 else 0)  # Age risk
+            (dehydration * 2) +               # Dehydration factor
+            (int(age < 12) + int(age > 65))   # Age risk
         )
         return score
     
