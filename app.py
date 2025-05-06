@@ -266,10 +266,9 @@ def home():
 @login_required
 def predictions():
     print("\n=== Loading Predictions ===")
-    predictions = Prediction.query.filter_by(user_id=current_user.id)\
-        .order_by(Prediction.timestamp.desc())\
+    predictions = CrisisPrediction.query.filter_by(user_id=current_user.id)\
+        .order_by(CrisisPrediction.timestamp.desc())\
         .all()
-    
     print(f"Found {len(predictions)} predictions")
     return render_template('predictions.html', 
                          predictions=predictions,

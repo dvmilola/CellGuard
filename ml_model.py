@@ -17,12 +17,24 @@ class CrisisPredictionModel:
         self.load_global_model()
     
     def load_global_model(self):
-        """Load the global trained model, scaler, and threshold"""
+        """Load the latest global trained model, scaler, and threshold"""
         try:
-            self.global_model = joblib.load('models/crisis_model_20250423_011731.joblib')
-            self.scaler = joblib.load('models/scaler_20250423_011731.joblib')
-            self.threshold = 0.5717901297415591  # Using the optimal threshold from training
-            print("Global model loaded successfully")
+            import glob
+            import re
+            model_files = glob.glob('models/crisis_model_*.joblib')
+            scaler_files = glob.glob('models/scaler_*.joblib')
+            threshold_files = glob.glob('models/threshold_*.txt')
+            if not model_files or not scaler_files or not threshold_files:
+                raise FileNotFoundError('No model, scaler, or threshold files found in models directory.')
+            # Sort by timestamp in filename
+            model_files.sort(reverse=True)
+            scaler_files.sort(reverse=True)
+            threshold_files.sort(reverse=True)
+            self.global_model = joblib.load(model_files[0])
+            self.scaler = joblib.load(scaler_files[0])
+            with open(threshold_files[0], 'r') as f:
+                self.threshold = float(f.read().strip())
+            print(f"Global model loaded: {model_files[0]}")
         except Exception as e:
             print(f"Error loading global model: {e}")
             raise
@@ -121,7 +133,7 @@ class CrisisPredictionModel:
                 model_type = 'user_specific'
             else:
                 model = self.global_model
-                threshold = self.threshold
+                threshold = 0.3  # Lowered threshold for higher sensitivity
                 model_type = 'global'
             
             # Get probability prediction
