@@ -1,4 +1,5 @@
 import logging
+import requests
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -57,59 +58,83 @@ socketio = SocketIO(app,
     engineio_logger=True
 )
 
+# Global monitoring state
+monitoring_state = {
+    'is_monitoring': False,
+    'sensor_client': None
+}
+
+# Pi configuration
+PI_API_URL = os.environ.get('PI_API_URL', 'http://172.20.10.4:5002')
+SENSOR_API_SECRET = os.environ.get('SENSOR_API_SECRET', 'cellguard_secret_2024')
+
 @app.route('/api/sensor-readings', methods=['POST'])
-@login_required
 def receive_sensor_readings():
-    try:
+    # Check for Authorization header (for Pi)
+    auth_header = request.headers.get('Authorization', '')
+    if auth_header == f'Bearer {SENSOR_API_SECRET}':
+        data = request.json
+        user_id = int(data.get('user_id', 1))  # Use user_id from payload or default
+    elif hasattr(current_user, 'is_authenticated') and current_user.is_authenticated:
         data = request.json
         user_id = current_user.id
-        
-        # Store sensor reading
-        reading = SensorReading(
-            user_id=user_id,
-            gsr=data['gsr'],
-            temperature=data['temperature'],
-            spo2=data['spo2'],
-            crisis_probability=data['probability']
-        )
-        db.session.add(reading)
-        db.session.commit()
-        
-        # Store prediction
-        prediction = CrisisPrediction(
-            user_id=user_id,
-            gsr=data['gsr'],
-            temperature=data['temperature'],
-            spo2=data['spo2'],
-            crisis_predicted=bool(data['prediction']),
-            crisis_probability=data['probability'],
-            features=data,
-            recommendations=get_recommendations({
-                'prediction': data['prediction'],
-                'probability': data['probability']
-            }, data)
-        )
-        db.session.add(prediction)
-        db.session.commit()
-        
-        # Emit prediction to connected clients
-        socketio.emit('sensor_update', {
-            'user_id': user_id,
+    else:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    if 'dehydration' not in data:
+        data['dehydration'] = 0
+    if 'age' not in data:
+        data['age'] = 30
+    if 'gender' not in data:
+        data['gender'] = 0
+    if 'spo2' not in data:
+        data['spo2'] = 98.0
+    if 'temperature' not in data:
+        data['temperature'] = 36.7
+
+    # Store sensor reading
+    reading = SensorReading(
+        user_id=user_id,
+        gsr=data['gsr'],
+        temperature=data['temperature'],
+        spo2=data['spo2'],
+        crisis_probability=data['probability']
+    )
+    db.session.add(reading)
+    db.session.commit()
+
+    # Store prediction
+    prediction = CrisisPrediction(
+        user_id=user_id,
+        gsr=data['gsr'],
+        temperature=data['temperature'],
+        spo2=data['spo2'],
+        crisis_predicted=bool(data['prediction']),
+        crisis_probability=data['probability'],
+        features=data,
+        recommendations=get_recommendations({
             'prediction': data['prediction'],
-            'probability': data['probability'],
-            'timestamp': data['timestamp'],
-            'gsr': data['gsr'],
-            'temperature': data['temperature'],
-            'spo2': data['spo2']
-        })
-        
-        return jsonify({
-            'status': 'success',
-            'message': 'Readings and prediction stored successfully'
-        })
-    except Exception as e:
-        logger.error(f"Error storing readings: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+            'probability': data['probability']
+        }, data)
+    )
+    db.session.add(prediction)
+    db.session.commit()
+
+    # Emit prediction to connected clients
+    socketio.emit('sensor_update', {
+        'user_id': user_id,
+        'prediction': data['prediction'],
+        'probability': data['probability'],
+        'timestamp': data['timestamp'],
+        'gsr': data['gsr'],
+        'temperature': data['temperature'],
+        'spo2': data['spo2']
+    })
+
+    return jsonify({
+        'status': 'success',
+        'message': 'Readings and prediction stored successfully'
+    })
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -121,10 +146,9 @@ def load_user(user_id):
 # Create database tables
 with app.app_context():
     print("\n[INFO] Initializing database...")
-    # Drop all tables and recreate them
-    db.drop_all()
+    # Create tables if they don't exist
     db.create_all()
-    print("[INFO] Database tables recreated")
+    print("[INFO] Database tables created/verified")
     
     # Print database info for verification
     print("\nDatabase initialized at:", app.config['SQLALCHEMY_DATABASE_URI'])
@@ -272,7 +296,7 @@ def predictions():
     print(f"Found {len(predictions)} predictions")
     return render_template('predictions.html', 
                          predictions=predictions,
-                         is_monitoring=False)  # Initialize monitoring state as False
+                         is_monitoring=monitoring_state['is_monitoring'])  # Use global monitoring state
 
 @app.route('/emergency')
 @login_required
@@ -786,6 +810,41 @@ def handle_message(message):
             emit('message', {'status': 'connection_verified'})
     except Exception as e:
         print(f'[ERROR] Error handling WebSocket message: {str(e)}')
+
+@app.route('/api/start-monitoring', methods=['POST'])
+@login_required
+def start_monitoring():
+    try:
+        headers = {'Authorization': f'Bearer {SENSOR_API_SECRET}'}
+        resp = requests.post(f"{PI_API_URL}/start-monitoring", headers=headers, timeout=5)
+        if resp.status_code == 200:
+            return jsonify({'status': 'success', 'message': 'Monitoring started on Pi'})
+        else:
+            return jsonify({'status': 'error', 'message': resp.json().get('error', 'Failed to start monitoring on Pi')}), 500
+    except Exception as e:
+        logger.error(f"Error starting monitoring: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/stop-monitoring', methods=['POST'])
+@login_required
+def stop_monitoring():
+    try:
+        headers = {'Authorization': f'Bearer {SENSOR_API_SECRET}'}
+        resp = requests.post(f"{PI_API_URL}/stop-monitoring", headers=headers, timeout=5)
+        if resp.status_code == 200:
+            return jsonify({'status': 'success', 'message': 'Monitoring stopped on Pi'})
+        else:
+            return jsonify({'status': 'error', 'message': resp.json().get('error', 'Failed to stop monitoring on Pi')}), 500
+    except Exception as e:
+        logger.error(f"Error stopping monitoring: {str(e)}")
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+
+@app.route('/api/monitoring-status', methods=['GET'])
+@login_required
+def get_monitoring_status():
+    return jsonify({
+        'is_monitoring': monitoring_state['is_monitoring']
+    })
 
 # Make sure templates directory exists
 os.makedirs('templates', exist_ok=True)
