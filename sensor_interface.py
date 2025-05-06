@@ -173,30 +173,41 @@ class SensorInterface:
             
             # Collect readings for 10 seconds
             start_time = time.time()
+            logger.info("[SpO2] Starting 10-second reading collection...")
             while time.time() - start_time < 10:
                 try:
                     red, ir = self._read_fifo()
                     if ir > 1000:  # Only use readings with good signal
                         red_readings.append(red)
                         ir_readings.append(ir)
-                except Exception:
+                        if len(red_readings) % 100 == 0:  # Log every 100 readings
+                            logger.info(f"[SpO2] Raw readings - Red: {red}, IR: {ir}")
+                except Exception as e:
+                    logger.error(f"[SpO2] Error reading FIFO: {str(e)}")
                     continue
                 time.sleep(0.01)
             
             # Calculate SpO2 if we have enough readings
             if len(ir_readings) > 100:
+                logger.info(f"[SpO2] Collected {len(ir_readings)} valid readings")
                 spo2 = self._calculate_spo2(red_readings, ir_readings)
                 if 70 <= spo2 <= 100:  # Only use valid SpO2 values
                     self.last_valid_spo2 = spo2
+                    logger.info(f"[SpO2] Calculated SpO2: {spo2}%")
                     return spo2
+                else:
+                    logger.warning(f"[SpO2] Invalid SpO2 value calculated: {spo2}%")
+            else:
+                logger.warning(f"[SpO2] Insufficient readings: {len(ir_readings)} < 100 required")
             
             # Return last valid reading if current reading is invalid
             if self.last_valid_spo2 is not None:
+                logger.info(f"[SpO2] Using last valid reading: {self.last_valid_spo2}%")
                 return self.last_valid_spo2
             return 0
             
         except Exception as e:
-            logger.error(f"Error reading SpO2: {str(e)}")
+            logger.error(f"[SpO2] Error reading SpO2: {str(e)}")
             if self.last_valid_spo2 is not None:
                 return self.last_valid_spo2
             return 0
@@ -214,6 +225,11 @@ class SensorInterface:
         
         r = (r_rms / r_mean) / (ir_rms / ir_mean)
         spo2 = 110 - 25 * r
+        
+        logger.info(f"[SpO2] Calculation details:")
+        logger.info(f"[SpO2] Red mean: {r_mean:.2f}, IR mean: {ir_mean:.2f}")
+        logger.info(f"[SpO2] Red RMS: {r_rms:.2f}, IR RMS: {ir_rms:.2f}")
+        logger.info(f"[SpO2] Ratio (r): {r:.4f}")
         
         return round(spo2, 1) if 70 <= spo2 <= 100 else 0
 
