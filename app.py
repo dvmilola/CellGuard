@@ -248,6 +248,8 @@ def api_signup():
     email = data.get('email')
     password = data.get('password')
     user_type = data.get('userType')
+    age = data.get('age')
+    gender = data.get('gender')
     
     # Check if user already exists
     existing_user = User.query.filter_by(email=email).first()
@@ -258,7 +260,7 @@ def api_signup():
         }), 400
     
     # Create new user
-    new_user = User(name=name, email=email, user_type=user_type)
+    new_user = User(name=name, email=email, user_type=user_type, age=age, gender=gender)
     new_user.set_password(password)
     
     try:
@@ -815,8 +817,12 @@ def handle_message(message):
 @login_required
 def start_monitoring():
     try:
-        headers = {'Authorization': f'Bearer {SENSOR_API_SECRET}'}
-        resp = requests.post(f"{PI_API_URL}/start-monitoring", headers=headers, timeout=5)
+        # Fetch age and gender for the current user
+        age = getattr(current_user, 'age', 30) or 30
+        gender = getattr(current_user, 'gender', 'male') or 'male'
+        headers = {'Authorization': f'Bearer {SENSOR_API_SECRET}', 'Content-Type': 'application/json'}
+        payload = {'age': age, 'gender': gender}
+        resp = requests.post(f"{PI_API_URL}/start-monitoring", headers=headers, json=payload, timeout=5)
         if resp.status_code == 200:
             return jsonify({'status': 'success', 'message': 'Monitoring started on Pi'})
         else:

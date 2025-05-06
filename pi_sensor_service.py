@@ -17,8 +17,13 @@ monitoring_thread = None
 
 sensor_interface = SensorInterface()
 
+age = 30
+gender = 'male'
+
 def collect_and_send_sensor_data():
-    global monitoring
+    global monitoring, age, gender
+    gender_map = {'male': 0, 'female': 1, 'other': 2}
+    gender_code = gender_map.get(gender, 0)
     while monitoring:
         # Get real sensor readings
         _, _, gsr = sensor_interface.read_gsr()
@@ -29,8 +34,8 @@ def collect_and_send_sensor_data():
             'gsr': gsr,
             'temperature': temperature,
             'spo2': spo2,
-            'age': 30,         # or get from config
-            'gender': 0,       # or get from config
+            'age': age,
+            'gender': gender_code,
             'dehydration': 0,  # or get from config
             'timestamp': time.strftime('%Y-%m-%dT%H:%M:%S')
         }
@@ -43,7 +48,7 @@ def collect_and_send_sensor_data():
             'spo2': spo2,
             'dehydration': raw_data.get('dehydration', 0),
             'age': raw_data.get('age', 30),
-            'gender': raw_data.get('gender', 0),
+            'gender': gender_code,
             'probability': probability,
             'prediction': prediction,
             'timestamp': raw_data['timestamp'],
@@ -59,12 +64,16 @@ def collect_and_send_sensor_data():
 
 @app.route('/start-monitoring', methods=['POST'])
 def start_monitoring():
-    global monitoring, monitoring_thread
+    global monitoring, monitoring_thread, age, gender
     token = request.headers.get('Authorization', '').replace('Bearer ', '')
     if token != SHARED_SECRET:
         return jsonify({'error': 'Unauthorized'}), 401
     if monitoring:
         return jsonify({'status': 'already_running'})
+    # Get age and gender from request body if present
+    data = request.get_json(silent=True) or {}
+    age = int(data.get('age', 30))
+    gender = data.get('gender', 'male')
     monitoring = True
     monitoring_thread = threading.Thread(target=collect_and_send_sensor_data, daemon=True)
     monitoring_thread.start()

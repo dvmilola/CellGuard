@@ -12,6 +12,8 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(128), nullable=False)
     user_type = db.Column(db.String(20), nullable=False)  # patient, caregiver, healthcare-provider
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    age = db.Column(db.Integer, nullable=True)
+    gender = db.Column(db.String(10), nullable=True)
     
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
