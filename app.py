@@ -27,6 +27,7 @@ from flask_socketio import SocketIO, emit
 import threading
 import time
 from sqlalchemy.orm import joinedload
+from collections import Counter # For most_common_symptom
 
 
 # Configure the application
@@ -505,10 +506,14 @@ def get_medication_refills():
                 if days_remaining < 0:
                     days_remaining = 0 # Show 0 if past due, or could be negative to indicate overdue
                 
-                # Calculate progress: (total supply days - days remaining) / total supply days
+                # Calculate progress: (days remaining / total supply days)
                 # Ensure days_remaining is not greater than total supply days (can happen if clock issues or future start date)
-                days_elapsed = med.current_supply_days - max(0, days_remaining)
-                progress_percentage = (days_elapsed / med.current_supply_days) * 100
+                # and current_supply_days is not zero to avoid division by zero error.
+                if med.current_supply_days > 0:
+                    progress_percentage = (max(0, days_remaining) / med.current_supply_days) * 100
+                else:
+                    progress_percentage = 0 # Or 100 if no supply days means it's always full/never depletes?
+                                            # For now, 0 if no supply_days defined.
                 progress_percentage = min(100, max(0, progress_percentage)) # Cap between 0 and 100
             else:
                 # If no supply info, default to 0 days remaining or handle as needed
@@ -901,11 +906,81 @@ def get_symptoms():
             'id': s.id,
             'date': s.date.isoformat(),
             'pain_level': s.pain_level,
-            'symptoms': json.loads(s.symptoms),
+            'symptoms': json.loads(s.symptoms) if s.symptoms else [], # Handle case where symptoms might be None/empty string before json.loads
             'notes': s.notes
         } for s in symptoms])
     except Exception as e:
+        logger.error(f"Error getting symptoms: {str(e)}", exc_info=True)
         return jsonify({'error': str(e)}), 400
+
+@app.route('/api/symptoms/stats', methods=['GET'])
+@login_required
+def get_symptom_stats():
+    try:
+        user_id = current_user.id
+        thirty_days_ago = datetime.utcnow().date() - timedelta(days=30)
+
+        recent_symptoms = Symptom.query.filter(
+            Symptom.user_id == user_id,
+            Symptom.date >= thirty_days_ago
+        ).all()
+
+        avg_pain_level = 0
+        most_common_symptom_str = "N/A"
+        symptom_free_days_count = 0
+
+        if recent_symptoms:
+            # Calculate average pain level
+            total_pain = sum(s.pain_level for s in recent_symptoms if s.pain_level is not None)
+            num_pain_entries = sum(1 for s in recent_symptoms if s.pain_level is not None)
+            if num_pain_entries > 0:
+                avg_pain_level = round(total_pain / num_pain_entries, 1)
+            else:
+                avg_pain_level = 0 # Or None, or "N/A" depending on preference
+
+            # Calculate most common symptom
+            all_symptoms_list = []
+            for s_entry in recent_symptoms:
+                try:
+                    symptoms_list = json.loads(s_entry.symptoms)
+                    if isinstance(symptoms_list, list):
+                        all_symptoms_list.extend(symptoms_list)
+                except (TypeError, json.JSONDecodeError):
+                    # Handle cases where s_entry.symptoms is None or not valid JSON
+                    pass 
+            
+            if all_symptoms_list:
+                symptom_counts = Counter(all_symptoms_list)
+                if symptom_counts:
+                    # Get all symptoms with the max count
+                    max_count = 0
+                    top_symptoms = []
+                    for symptom, count in symptom_counts.items():
+                        if count > max_count:
+                            max_count = count
+                            top_symptoms = [symptom]
+                        elif count == max_count:
+                            top_symptoms.append(symptom)
+                    most_common_symptom_str = ", ".join(top_symptoms) if top_symptoms else "N/A"
+
+            # Calculate symptom-free days (days with pain_level 0)
+            symptom_free_dates = set()
+            for s_entry in recent_symptoms:
+                if s_entry.pain_level == 0:
+                    symptom_free_dates.add(s_entry.date)
+            symptom_free_days_count = len(symptom_free_dates)
+        else:
+            avg_pain_level = 0 # Default if no recent symptoms
+
+        return jsonify({
+            'average_pain_level': avg_pain_level,
+            'most_common_symptom': most_common_symptom_str,
+            'symptom_free_days': symptom_free_days_count
+        })
+
+    except Exception as e:
+        logger.error(f"Error calculating symptom stats: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Failed to calculate symptom stats'}), 500
 
 @app.route('/knowledge-library')
 @login_required

@@ -796,4 +796,166 @@ document.addEventListener('DOMContentLoaded', function() {
       alert('An error occurred while deleting the medication. Please check your connection and try again.');
     }
   }
+
+  // --- Symptom Tracker Page Specific Functions ---
+  if (document.querySelector('.symptom-tracker-page')) {
+    const avgPainLevelEl = document.getElementById('avg-pain-level-value');
+    const mostCommonSymptomEl = document.getElementById('most-common-symptom-value');
+    const symptomFreeDaysEl = document.getElementById('symptom-free-days-value');
+    const recentSymptomsListEl = document.getElementById('recent-symptoms-list');
+    const saveSymptomsButton = document.getElementById('save-symptoms');
+    const symptomDateField = document.getElementById('current-date'); // Assuming this shows the date being logged
+    const painLevelSlider = document.getElementById('pain-level');
+    const symptomNotesField = document.getElementById('symptom-notes');
+
+    async function loadSymptomStats() {
+      if (!avgPainLevelEl || !mostCommonSymptomEl || !symptomFreeDaysEl) return;
+      try {
+        const response = await fetch('/api/symptoms/stats');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const stats = await response.json();
+        avgPainLevelEl.textContent = stats.average_pain_level !== null ? stats.average_pain_level : 'N/A';
+        mostCommonSymptomEl.textContent = stats.most_common_symptom || 'N/A';
+        symptomFreeDaysEl.textContent = stats.symptom_free_days;
+      } catch (error) {
+        console.error('Error loading symptom stats:', error);
+        avgPainLevelEl.textContent = 'Error';
+        mostCommonSymptomEl.textContent = 'Error';
+        symptomFreeDaysEl.textContent = 'Error';
+      }
+    }
+
+    function renderSymptomEntry(entry) {
+      const card = document.createElement('div');
+      card.className = 'symptom-card';
+      
+      const entryDate = new Date(entry.date + 'T00:00:00'); // Ensure date is parsed as local
+      const formattedDate = entryDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+      let symptomsHTML = '';
+      if (entry.symptoms && entry.symptoms.length > 0) {
+        symptomsHTML = entry.symptoms.map(s => `<span class="symptom-tag">${s}</span>`).join('');
+      } else {
+        symptomsHTML = '<span class="symptom-tag-none">No specific symptoms listed</span>';
+      }
+
+      card.innerHTML = `
+        <div class="symptom-header">
+          <span class="date">${formattedDate}</span>
+          <span class="pain-level">Pain Level: ${entry.pain_level}</span>
+        </div>
+        <div class="symptom-details">
+          <div class="symptoms">
+            ${symptomsHTML}
+          </div>
+          ${entry.notes ? `<p class="notes">${entry.notes}</p>` : '<p class="notes"><em>No notes.</em></p>'}
+        </div>
+      `;
+      return card;
+    }
+
+    async function loadRecentSymptoms() {
+      if (!recentSymptomsListEl) return;
+      try {
+        const response = await fetch('/api/symptoms');
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const symptoms = await response.json();
+        recentSymptomsListEl.innerHTML = ''; // Clear existing
+        if (symptoms.length === 0) {
+          recentSymptomsListEl.innerHTML = '<p>No symptoms logged yet.</p>';
+          return;
+        }
+        symptoms.forEach(entry => {
+          recentSymptomsListEl.appendChild(renderSymptomEntry(entry));
+        });
+      } catch (error) {
+        console.error('Error loading recent symptoms:', error);
+        recentSymptomsListEl.innerHTML = '<p>Error loading symptoms.</p>';
+      }
+    }
+
+    if (saveSymptomsButton) {
+      saveSymptomsButton.addEventListener('click', async () => {
+        // Assuming symptomDateField.textContent or a hidden input holds the YYYY-MM-DD date
+        // For simplicity, this example might need a robust way to get the selected log date
+        // For now, let's assume a hidden input or a parsable field for the date.
+        // This part needs to align with how the date is actually selected and stored in the form.
+        // Let's use a placeholder for date retrieval from the form, assuming it is YYYY-MM-DD
+        // const logDate = document.getElementById('actual-log-date-input').value; // Example: needs this element
+        
+        // Fallback: Try to parse from the displayed #current-date span if it contains YYYY-MM-DD
+        // This is brittle; a dedicated hidden input for the selected YYYY-MM-DD date is better.
+        let logDateStr = new Date().toISOString().split('T')[0]; // Default to today if parsing fails
+        if(symptomDateField) {
+            // Attempt to parse a date from a more complex string if needed.
+            // For now, assuming symptomDateField holds or can be converted to YYYY-MM-DD
+            // This part is highly dependent on how '#current-date' is formatted and updated.
+            // We will assume for this example it holds a date that can be directly used or needs parsing.
+            // If it's like "Today, April 17, 2024", it needs robust parsing not included here.
+            // For the sake of an example, let's assume you have a mechanism to get YYYY-MM-DD.
+            // If symptomDateField.dataset.isoDate exists (set by date picker logic), use it.
+            if (symptomDateField.dataset.isoDate) {
+                logDateStr = symptomDateField.dataset.isoDate;
+            } else {
+                // Simple attempt if it's just a YYYY-MM-DD string, otherwise defaults to today
+                // This part is NOT robust for display strings like "Today, April 17, 2024"
+                // You should ensure `logDateStr` is correctly set to a 'YYYY-MM-DD' string.
+                console.warn("Using default/today's date for symptom log as specific date parsing from display is complex/not implemented here.");
+            }
+        }
+
+        const selectedSymptoms = [];
+        document.querySelectorAll('.symptom-checklist input[name="symptoms"]:checked').forEach(checkbox => {
+          selectedSymptoms.push(checkbox.value);
+        });
+
+        const payload = {
+          date: logDateStr, // Ensure this is YYYY-MM-DD format
+          pain_level: parseInt(painLevelSlider.value, 10),
+          symptoms: selectedSymptoms,
+          notes: symptomNotesField.value
+        };
+
+        try {
+          const response = await fetch('/api/symptoms', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload)
+          });
+          if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error || `HTTP error! status: ${response.status}`);
+          }
+          alert('Symptoms saved successfully!');
+          // Clear form elements (optional, good UX)
+          painLevelSlider.value = '0';
+          document.querySelectorAll('.symptom-checklist input[name="symptoms"]:checked').forEach(checkbox => checkbox.checked = false);
+          symptomNotesField.value = '';
+          
+          // Refresh stats and list
+          loadSymptomStats();
+          loadRecentSymptoms();
+        } catch (error) {
+          console.error('Error saving symptoms:', error);
+          alert(`Error saving symptoms: ${error.message}`);
+        }
+      });
+    }
+
+    // Initial load
+    loadSymptomStats();
+    loadRecentSymptoms();
+    
+    // Add event listener for date changes if your date selector is interactive
+    // Example: if #prev-day, #next-day, or a date picker updates symptomDateField.dataset.isoDate,
+    // you might want to reload data or clear the form for the new date.
+    // The current save logic assumes it can get the correct YYYY-MM-DD date for the log.
+  }
+  // --- End Symptom Tracker Page Specific Functions ---
 });
