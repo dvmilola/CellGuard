@@ -101,11 +101,16 @@ class Medication(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
+    # Fields for current supply tracking
+    current_supply_days = db.Column(db.Integer, nullable=True) 
+    current_supply_start_date = db.Column(db.Date, nullable=True)
+
     user = db.relationship('User', backref=db.backref('medications', lazy=True))
 
 class MedicationSchedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     medication_id = db.Column(db.Integer, db.ForeignKey('medication.id'), nullable=False)
+    scheduled_date = db.Column(db.Date, nullable=False)
     time = db.Column(db.Time, nullable=False)
     is_taken = db.Column(db.Boolean, default=False)
     taken_at = db.Column(db.DateTime)
@@ -117,10 +122,10 @@ class MedicationSchedule(db.Model):
 class MedicationRefill(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     medication_id = db.Column(db.Integer, db.ForeignKey('medication.id'), nullable=False)
-    quantity = db.Column(db.Integer, nullable=False)
-    days_supply = db.Column(db.Integer, nullable=False)
+    quantity = db.Column(db.Integer, nullable=True) # Made nullable, might represent number of packs/pills
+    days_supply = db.Column(db.Integer, nullable=False) # Days this specific refill provides
     refill_date = db.Column(db.Date, nullable=False)
-    next_refill_date = db.Column(db.Date, nullable=False)
+    next_refill_date = db.Column(db.Date, nullable=True) # Made nullable
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

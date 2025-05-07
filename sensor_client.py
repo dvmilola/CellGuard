@@ -155,14 +155,51 @@ class SensorClient:
         logger.info("\nStarting continuous monitoring...")
         logger.info("Press Ctrl+C to stop")
         try:
-            self.sensors.continuous_monitoring(
-                callback=self.send_readings,
-                interval=interval
-            )
+            while True:
+                # Check if monitoring is still active
+                try:
+                    response = self.session.get(f"{self.server_url}/api/monitoring-status")
+                    if response.status_code == 200:
+                        data = response.json()
+                        if not data.get('is_monitoring', False):
+                            logger.info("Monitoring stopped by server")
+                            break
+                except Exception as e:
+                    logger.error(f"Error checking monitoring status: {str(e)}")
+                    break
+
+                # Get sensor readings
+                _, _, conductance = self.sensors.read_gsr()
+                spo2 = self.sensors.read_spo2()
+                temperature = self.sensors.read_temperature()
+                
+                # Prepare readings
+                readings = {
+                    'gsr': conductance,
+                    'temperature': temperature,
+                    'spo2': spo2,
+                    'age': 30,  # Default age
+                    'gender': 0,  # Default gender (0 for male)
+                    'dehydration': 0,  # Default dehydration level
+                    'timestamp': datetime.now().isoformat()
+                }
+                
+                # Send readings
+                self.send_readings(readings)
+                
+                # Wait for next interval
+                time.sleep(interval)
+                
         except KeyboardInterrupt:
             logger.info("\nMonitoring stopped by user")
         except Exception as e:
             logger.error(f"Error during monitoring: {str(e)}")
+        finally:
+            # Ensure we clean up
+            try:
+                self.session.post(f"{self.server_url}/api/stop-monitoring")
+            except:
+                pass
 
 if __name__ == "__main__":
     # Update these values to match your server

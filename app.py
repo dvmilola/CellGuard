@@ -1,5 +1,7 @@
 import logging
 import requests
+import click
+from flask.cli import with_appcontext
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -24,6 +26,7 @@ from models import (
 from flask_socketio import SocketIO, emit
 import threading
 import time
+from sqlalchemy.orm import joinedload
 
 
 # Configure the application
@@ -363,47 +366,76 @@ def medications():
 @app.route('/api/medications', methods=['GET'])
 @login_required
 def get_medications():
-    # In a real implementation, this would fetch medications from the database
-    # For now, we'll return sample data
-    return jsonify([
-        {
-            'name': 'Hydroxyurea',
-            'dosage': '500mg',
-            'frequency': 'Once daily',
-            'start_date': '2024-01-15',
-            'is_active': True
-        },
-        {
-            'name': 'Folic Acid',
-            'dosage': '1mg',
-            'frequency': 'Once daily',
-            'start_date': '2024-01-15',
-            'is_active': True
-        }
-    ])
+    try:
+        medications = Medication.query.filter_by(user_id=current_user.id).all()
+        return jsonify([{
+            'id': med.id,
+            'name': med.name,
+            'dosage': med.dosage,
+            'frequency': med.frequency,
+            'start_date': med.start_date.isoformat() if med.start_date else None,
+            'is_active': med.end_date is None # Assuming active if no end date
+        } for med in medications])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/medications', methods=['POST'])
 @login_required
 def save_medication():
     try:
         data = request.get_json()
-        
+        med_start_date = datetime.utcnow().date() # Default to today
+        # Potentially allow start_date from form in future if needed
+        # if data.get('start_date'):
+        #     med_start_date = datetime.strptime(data.get('start_date'), '%Y-%m-%d').date()
+
+        days_supply_from_form = data.get('days_supply')
+        if days_supply_from_form is None:
+            # Fallback or error if not provided, for now let's make it optional and default if you wish
+            # For this implementation, let's assume it might be provided, or we handle it being None later in logic.
+            # Or, make it required from frontend.
+            # For now, if None, current_supply_days might remain None in DB unless a default is set here.
+            pass # Keep days_supply_from_form as None if not sent
+
         # Create new medication
         new_medication = Medication(
             user_id=current_user.id,
             name=data['name'],
             dosage=data['dosage'],
             frequency=data['frequency'],
-            start_date=datetime.utcnow().date(),
-            notes=data.get('notes', '')
+            start_date=med_start_date,
+            notes=data.get('notes', ''),
+            current_supply_days=days_supply_from_form, # Set from form
+            current_supply_start_date=med_start_date    # Set to medication start date initially
         )
         
         db.session.add(new_medication)
-        db.session.commit()
+        db.session.flush()  # Flush to get the new_medication.id for the MedicationRefill record
+
+        # Create an initial MedicationRefill record if days_supply was provided
+        if days_supply_from_form is not None:
+            initial_refill = MedicationRefill(
+                medication_id=new_medication.id,
+                refill_date=med_start_date,
+                days_supply=days_supply_from_form,
+                quantity=1 # Assuming initial batch is 1 unit/pack for now
+                # next_refill_date could be calculated here: med_start_date + timedelta(days=days_supply_from_form)
+            )
+            db.session.add(initial_refill)
         
-        # Create initial schedule
+        # Create initial schedule for today (or med_start_date if different)
+        today_date = datetime.utcnow().date()
+        # If a specific start_date is provided from form and is in future, use that
+        # For now, we'll assume the first schedule is for today or medication's start_date if available
+        schedule_date_to_use = today_date 
+        if new_medication.start_date and new_medication.start_date > today_date:
+            schedule_date_to_use = new_medication.start_date
+        elif new_medication.start_date:
+             schedule_date_to_use = new_medication.start_date
+
         new_schedule = MedicationSchedule(
             medication_id=new_medication.id,
+            scheduled_date=schedule_date_to_use, # Set the scheduled_date
             time=datetime.strptime(data['time'], '%H:%M').time(),
             is_taken=False
         )
@@ -427,41 +459,74 @@ def save_medication():
 @app.route('/api/medications/schedule', methods=['GET'])
 @login_required
 def get_medication_schedule():
-    # In a real implementation, this would fetch the schedule from the database
-    # For now, we'll return sample data
-    return jsonify([
-        {
-            'medication': 'Hydroxyurea',
-            'dosage': '500mg',
-            'time': '08:00',
-            'is_taken': False
-        },
-        {
-            'medication': 'Folic Acid',
-            'dosage': '1mg',
-            'time': '08:00',
-            'is_taken': False
-        }
-    ])
+    try:
+        today = datetime.utcnow().date()
+        # Fetch schedules for today for the current user
+        # Join with Medication to get medication name and dosage
+        schedules = db.session.query(
+            MedicationSchedule, Medication.name, Medication.dosage
+        ).join(Medication, Medication.id == MedicationSchedule.medication_id)\
+        .filter(\
+            Medication.user_id == current_user.id,\
+            MedicationSchedule.scheduled_date == today\
+        ).order_by(MedicationSchedule.time).all()
+
+        schedule_list = []
+        for schedule_entry, med_name, med_dosage in schedules:
+            schedule_list.append({
+                'medication_id': schedule_entry.medication_id,
+                'medication_name': med_name,
+                'dosage': med_dosage,
+                'time': schedule_entry.time.strftime('%H:%M'), # Format time as HH:MM
+                'is_taken': schedule_entry.is_taken,
+                'schedule_id': schedule_entry.id 
+            })
+        return jsonify(schedule_list)
+    except Exception as e:
+        print(f"Error fetching medication schedule: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/medications/refills', methods=['GET'])
+@login_required
 def get_medication_refills():
-    # In a real implementation, this would fetch refill data from the database
-    # For now, we'll return sample data
-    return jsonify([
-        {
-            'medication': 'Hydroxyurea',
-            'dosage': '500mg',
-            'days_remaining': 15,
-            'progress': 60
-        },
-        {
-            'medication': 'Folic Acid',
-            'dosage': '1mg',
-            'days_remaining': 20,
-            'progress': 80
-        }
-    ])
+    try:
+        user_medications = Medication.query.filter_by(user_id=current_user.id).all()
+        refill_info_list = []
+        today = datetime.utcnow().date()
+
+        for med in user_medications:
+            days_remaining = None
+            progress_percentage = 0
+
+            if med.current_supply_start_date and med.current_supply_days is not None and med.current_supply_days > 0:
+                supply_end_date = med.current_supply_start_date + timedelta(days=med.current_supply_days)
+                days_remaining = (supply_end_date - today).days
+                
+                if days_remaining < 0:
+                    days_remaining = 0 # Show 0 if past due, or could be negative to indicate overdue
+                
+                # Calculate progress: (total supply days - days remaining) / total supply days
+                # Ensure days_remaining is not greater than total supply days (can happen if clock issues or future start date)
+                days_elapsed = med.current_supply_days - max(0, days_remaining)
+                progress_percentage = (days_elapsed / med.current_supply_days) * 100
+                progress_percentage = min(100, max(0, progress_percentage)) # Cap between 0 and 100
+            else:
+                # If no supply info, default to 0 days remaining or handle as needed
+                days_remaining = 0 
+
+            refill_info_list.append({
+                'medication_id': med.id,
+                'medication_name': med.name,
+                'dosage': med.dosage, # Added for display consistency
+                'days_remaining': days_remaining,
+                'progress': round(progress_percentage) # Send as whole number for progress bar
+            })
+        
+        return jsonify(refill_info_list)
+
+    except Exception as e:
+        logger.error(f"Error fetching medication refills: {str(e)}", exc_info=True)
+        return jsonify({'error': 'Failed to fetch refill data'}), 500
 
 @app.route('/api/medications/history', methods=['GET'])
 @login_required
@@ -472,14 +537,20 @@ def get_medication_history():
         end_date = datetime.utcnow().date()
         start_date = end_date - timedelta(days=days)
 
-        # Get all medications for the current user
-        medications = Medication.query.filter_by(user_id=current_user.id).all()
+        # Corrected start_date to be inclusive for the period
+        actual_start_date_for_period = end_date - timedelta(days=days - 1)
+
+        # Get all active medications for the current user
+        medications = Medication.query.filter(
+            Medication.user_id == current_user.id,
+            db.or_(Medication.end_date == None, Medication.end_date >= actual_start_date_for_period)
+        ).all()
+        medication_ids = [m.id for m in medications]
         
         # Generate labels for the chart (dates)
-        labels = []
-        for i in range(days):
-            date = start_date + timedelta(days=i)
-            labels.append(date.strftime('%a'))
+        # Iterate 'days' times, starting from actual_start_date_for_period
+        labels_for_chart = [(actual_start_date_for_period + timedelta(days=i)).strftime('%a') for i in range(days)]
+        query_dates = [(actual_start_date_for_period + timedelta(days=i)) for i in range(days)]
 
         # Prepare datasets for each medication
         datasets = []
@@ -492,31 +563,55 @@ def get_medication_history():
         ]
 
         for i, medication in enumerate(medications):
-            # Get schedule entries for this medication within the date range
             schedules = MedicationSchedule.query.filter(
                 MedicationSchedule.medication_id == medication.id,
-                MedicationSchedule.taken_at >= start_date,
-                MedicationSchedule.taken_at <= end_date
+                MedicationSchedule.scheduled_date >= actual_start_date_for_period,
+                MedicationSchedule.scheduled_date <= end_date
             ).all()
 
-            # Create a map of dates to taken status
-            date_status = {date: 0 for date in labels}
-            for schedule in schedules:
-                date = schedule.taken_at.strftime('%a')
-                date_status[date] = 1 if schedule.is_taken else 0
+            today_for_debug = datetime.utcnow().date()
+            
+            logger.info(f"-- Debug for Med ID {medication.id} ('{medication.name}') --")
+            logger.info(f"  Target Date Range: {actual_start_date_for_period} to {end_date}")
+            logger.info(f"  Query Dates (date objects) for Chart Logic: {query_dates}")
+            logger.info(f"  Labels for Chart Display (strings): {labels_for_chart}")
+            logger.info(f"  Schedules Found in DB ({len(schedules)}):")
+            for s_debug in schedules:
+                logger.info(f"    - Date: {s_debug.scheduled_date}, Time: {s_debug.time}, Taken: {s_debug.is_taken}")
+            
+            # taken_status_map will store the actual status (1 for taken, 0 for not taken) 
+            # for dates where a schedule entry exists.
+            taken_status_map = {sch.scheduled_date: (1 if sch.is_taken else 0) for sch in schedules}
+            logger.info(f"  Taken Status Map Created (keys are date objects): {taken_status_map}")
+            
+            daily_data = []
+            actually_scheduled_days_for_medication = 0 # New counter for this medication
 
-            # Add dataset for this medication
+            for q_idx, q_date in enumerate(query_dates):
+                status = taken_status_map.get(q_date, 0) # Reverted: Default to 0 for chart visual
+                daily_data.append(status)
+                
+                if q_date in taken_status_map: # Check if a schedule actually existed for this day
+                    actually_scheduled_days_for_medication += 1
+
+                if q_date == today_for_debug:
+                    logger.info(f"    For today ({q_date}), status from map: {status}. Corresponding display label: {labels_for_chart[q_idx]}")
+            
+            logger.info(f"  Resulting daily_data for chart: {daily_data}")
+            logger.info(f"  Actually scheduled days for this medication in view: {actually_scheduled_days_for_medication}") # Log new count
+
             datasets.append({
                 'label': medication.name,
-                'data': [date_status[date] for date in labels],
+                'data': daily_data,
                 'borderColor': colors[i % len(colors)],
                 'backgroundColor': colors[i % len(colors)].replace('rgb', 'rgba').replace(')', ', 0.1)'),
                 'tension': 0.4,
-                'fill': True
+                'fill': True,
+                'scheduled_days_count': actually_scheduled_days_for_medication # Add new field
             })
 
         return jsonify({
-            'labels': labels,
+            'labels': labels_for_chart,
             'datasets': datasets
         })
     except Exception as e:
@@ -531,26 +626,36 @@ def mark_medication_taken(medication_id):
         medication = Medication.query.filter_by(
             id=medication_id,
             user_id=current_user.id
-        ).first_or_404()
+        ).first_or_404("Medication not found or access denied")
 
         # Get today's date
         today = datetime.utcnow().date()
 
-        # Find or create a schedule entry for today
+        # Find the specific schedule entry for today
         schedule = MedicationSchedule.query.filter_by(
             medication_id=medication_id,
             scheduled_date=today
+            # We might need to filter by time as well if multiple doses per day
+            # time=specific_time_if_known 
         ).first()
 
         if not schedule:
-            schedule = MedicationSchedule(
-                medication_id=medication_id,
-                scheduled_date=today,
-                is_taken=True
-            )
-            db.session.add(schedule)
+            # If no specific schedule entry exists for today, maybe log an error
+            # or decide if we should create one retroactively (depends on requirements)
+            return jsonify({'error': 'No scheduled dose found for today'}), 404 
+            
+            # Alternatively, if you want to allow marking even if not explicitly scheduled:
+            # schedule = MedicationSchedule(
+            #     medication_id=medication_id,
+            #     scheduled_date=today,
+            #     time=datetime.utcnow().time(), # Use current time? Or fetch scheduled time?
+            #     is_taken=True,
+            #     taken_at=datetime.utcnow()
+            # )
+            # db.session.add(schedule)
         else:
             schedule.is_taken = True
+            schedule.taken_at = datetime.utcnow() 
 
         db.session.commit()
         return jsonify({'success': True})
@@ -558,6 +663,45 @@ def mark_medication_taken(medication_id):
         db.session.rollback()
         print(f"Error marking medication as taken: {str(e)}")
         return jsonify({'error': str(e)}), 400
+
+@app.route('/api/medications/<int:medication_id>', methods=['DELETE'])
+@login_required
+def delete_medication(medication_id):
+    try:
+        logger.info(f"Attempting to delete medication ID: {medication_id} for user ID: {current_user.id}")
+        # Fetch the medication ensuring it belongs to the current user
+        medication = Medication.query.filter_by(id=medication_id, user_id=current_user.id).first()
+
+        if not medication:
+            logger.warning(f"Medication ID: {medication_id} not found for user ID: {current_user.id}")
+            return jsonify({'error': 'Medication not found or you do not have permission to delete it'}), 404
+
+        logger.info(f"Found medication: {medication.name}. Preparing to delete its associations.")
+
+        # Explicitly delete associated schedules
+        schedules_to_delete = MedicationSchedule.query.filter_by(medication_id=medication.id).all()
+        for schedule in schedules_to_delete:
+            logger.info(f"Deleting schedule ID: {schedule.id} for medication ID: {medication.id}")
+            db.session.delete(schedule)
+
+        # Explicitly delete associated refills
+        refills_to_delete = MedicationRefill.query.filter_by(medication_id=medication.id).all()
+        for refill in refills_to_delete:
+            logger.info(f"Deleting refill ID: {refill.id} for medication ID: {medication.id}")
+            db.session.delete(refill)
+            
+        logger.info(f"Deleting medication ID: {medication.id} itself ({medication.name}).")
+        db.session.delete(medication)
+        
+        db.session.commit()
+        logger.info(f"Successfully committed deletion of medication ID: {medication_id} and its associations.")
+        
+        return jsonify({'success': True, 'message': 'Medication deleted successfully'})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting medication ID: {medication_id}. Error: {str(e)}", exc_info=True)
+        return jsonify({'error': 'An error occurred while deleting the medication'}), 500
 
 # API routes
 @app.route('/api/predict', methods=['POST'])
@@ -851,6 +995,79 @@ def get_monitoring_status():
     return jsonify({
         'is_monitoring': monitoring_state['is_monitoring']
     })
+
+# CLI command to create medication schedules
+@app.cli.command("create-schedules")
+@with_appcontext
+@click.option('--date', default='today', help='Target date for schedule creation (YYYY-MM-DD or "today").')
+def create_medication_schedules(date):
+    """Creates medication schedule entries for a given date for all active medications."""
+    target_date_str = date
+    if date == 'today':
+        target_date = datetime.utcnow().date()
+    else:
+        try:
+            target_date = datetime.strptime(date, '%Y-%m-%d').date()
+        except ValueError:
+            print(f"Error: Invalid date format for {date}. Please use YYYY-MM-DD or 'today'.")
+            return
+
+    print(f"Creating medication schedules for: {target_date.isoformat()}")
+
+    users = User.query.all()
+    schedules_created_count = 0
+
+    for user in users:
+        active_medications = Medication.query.filter(
+            Medication.user_id == user.id,
+            Medication.start_date <= target_date,
+            db.or_(Medication.end_date == None, Medication.end_date >= target_date)
+        ).all()
+
+        for med in active_medications:
+            # Determine scheduled times based on frequency
+            # This is a simplified example; you'll need more robust parsing for frequency
+            scheduled_times = []
+            if med.frequency.lower() == 'once daily':
+                # Try to get the time from an existing schedule or default to a common time like 8 AM
+                existing_schedule_time = MedicationSchedule.query.filter_by(medication_id=med.id).first()
+                if existing_schedule_time and existing_schedule_time.time:
+                    scheduled_times.append(existing_schedule_time.time)
+                else:
+                    scheduled_times.append(datetime.strptime('08:00', '%H:%M').time()) 
+            elif med.frequency.lower() == 'twice daily':
+                scheduled_times.append(datetime.strptime('08:00', '%H:%M').time())
+                scheduled_times.append(datetime.strptime('20:00', '%H:%M').time())
+            # Add more frequency logic here (e.g., "Three times daily", "As needed" might be skipped or handled differently)
+            else:
+                print(f"Warning: Unsupported frequency '{med.frequency}' for medication '{med.name}' (ID: {med.id}). Skipping.")
+                continue
+
+            for sched_time in scheduled_times:
+                exists = MedicationSchedule.query.filter_by(
+                    medication_id=med.id,
+                    scheduled_date=target_date,
+                    time=sched_time
+                ).first()
+
+                if not exists:
+                    new_schedule = MedicationSchedule(
+                        medication_id=med.id,
+                        scheduled_date=target_date,
+                        time=sched_time,
+                        is_taken=False
+                    )
+                    db.session.add(new_schedule)
+                    schedules_created_count += 1
+                    print(f"  Created schedule for {med.name} at {sched_time.strftime('%H:%M')} for user {user.id}")
+                else:
+                    print(f"  Schedule already exists for {med.name} at {sched_time.strftime('%H:%M')} for user {user.id}")
+    
+    if schedules_created_count > 0:
+        db.session.commit()
+        print(f"Successfully created {schedules_created_count} new schedule(s).")
+    else:
+        print("No new schedules needed to be created.")
 
 # Make sure templates directory exists
 os.makedirs('templates', exist_ok=True)

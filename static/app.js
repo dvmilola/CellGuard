@@ -757,4 +757,43 @@ document.addEventListener('DOMContentLoaded', function() {
       fill.style.backgroundColor = '#28a745';
     }
   }
+
+  // Delete a medication
+  async function handleDeleteMedication(medicationId, cardElement) {
+    if (!confirm('Are you sure you want to delete this medication and all its history? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/medications/${medicationId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Medication deleted:', result.message);
+        if (cardElement) {
+          cardElement.remove();
+        }
+        // Refresh current medications list (optional, if not all cards are always visible)
+        // await loadCurrentMedications(); 
+        
+        // Refresh Today's Schedule
+        await loadTodaysSchedule();
+        
+        // Refresh the medication history chart
+        await loadMedicationHistory();
+        
+        // Optionally, show a success message to the user
+        // showToast('Medication deleted successfully.'); 
+      } else {
+        const errorData = await response.json();
+        console.error('Error deleting medication:', errorData.error);
+        alert(`Error deleting medication: ${errorData.error}`);
+      }
+    } catch (error) {
+      console.error('Network error or other issue:', error);
+      alert('An error occurred while deleting the medication. Please check your connection and try again.');
+    }
+  }
 });
