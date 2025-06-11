@@ -15,18 +15,15 @@
           <div class="card">
             <h3>My Patients</h3>
             <div class="patient-list">
-              {% for patient in patients %}
+              {% for p in patients %}
               <div class="patient-card">
                 <div class="patient-info">
-                  <div class="patient-name">{{ patient.patient.name }}</div>
-                  <div class="patient-status {% if patient.latest_prediction and patient.latest_prediction.crisis_predicted %}status-danger{% elif patient.latest_prediction and patient.latest_prediction.crisis_probability > 0.5 %}status-warning{% else %}status-normal{% endif %}">
-                    {% if patient.latest_prediction %}
-                      {% if patient.latest_prediction.crisis_predicted %}
-                        High Risk
-                      {% elif patient.latest_prediction.crisis_probability > 0.5 %}
-                        Moderate Risk
-                      {% else %}
-                        Low Risk
+                  <div class="patient-name">{{ p.patient.name }}</div>
+                  <div class="patient-status {% if p.latest_prediction and p.latest_prediction.crisis_predicted %}status-danger{% elif p.latest_prediction and p.latest_prediction.crisis_probability > 0.7 %}status-warning{% else %}status-normal{% endif %}">
+                    {% if p.latest_prediction %}
+                      {% if p.latest_prediction.crisis_predicted %}High Risk
+                      {% elif p.latest_prediction.crisis_probability > 0.7 %}Moderate Risk
+                      {% else %}Low Risk
                       {% endif %}
                     {% else %}
                       No Data
@@ -36,43 +33,37 @@
                 <div class="patient-vitals">
                   <div class="vital-stat">
                     <i class="fas fa-thermometer-half"></i>
-                    {{ patient.latest_reading.temperature|round(1) if patient.latest_reading else '--' }}°C
+                    {{ '%.1f'|format(p.latest_reading.temperature) if p.latest_reading else '--' }}°C
                   </div>
                   <div class="vital-stat">
-                    <i class="fas fa-lungs"></i>
-                    {{ patient.latest_reading.spo2|round(0) if patient.latest_reading else '--' }}%
+                    <i class="fas fa-tint"></i>
+                    {{ (p.latest_reading.spo2 | round(1)) if p.latest_reading else '--' }}%
+                  </div>
+                  <div class="vital-stat">
+                    <i class="fas fa-hand-holding-medical"></i>
+                    {{ (p.latest_reading.gsr | round(2)) if p.latest_reading else '--' }}
                   </div>
                 </div>
+                <div class="patient-contact">
+                  <span><i class="fas fa-envelope"></i> {{ p.patient.email }}</span>
+                  <span><i class="fas fa-phone"></i> {{ p.patient.phone or 'Not Provided' }}</span>
+                </div>
                 <div class="patient-actions">
-                  <button class="btn btn-primary btn-sm" onclick="viewPatientDetails({{ patient.patient.id }})">View Details</button>
-                  <button class="btn btn-outline btn-sm" onclick="contactPatient({{ patient.patient.id }})">Contact</button>
+                  <button class="btn btn-primary btn-sm view-details-btn" data-patient-id="{{ p.patient.id }}">View Details</button>
+                  <button class="btn btn-outline btn-sm contact-btn" data-patient-name="{{ p.patient.name }}" data-patient-email="{{ p.patient.email }}" data-patient-phone="{{ p.patient.phone or 'N/A' }}">Contact</button>
                 </div>
               </div>
               {% endfor %}
             </div>
-            <button class="btn btn-primary" style="margin-top: 1rem" onclick="addNewPatient()">
-              <i class="fas fa-plus"></i> Add New Patient
-            </button>
+            <button class="btn btn-primary" style="width: 100%; margin-top: 1rem" id="add-patient-btn-main">Add New Patient</button>
           </div>
 
           <!-- Alerts & Notifications -->
           <div class="card">
             <h3>Recent Alerts</h3>
             <div class="alert-list">
-              {% for alert in alerts %}
-              <div class="alert-card {{ alert.severity }}">
-                <div class="alert-header">
-                  <div class="alert-title">{{ alert.title }}</div>
-                  <div class="alert-time">{{ alert.time_ago }}</div>
-                </div>
-                <div class="alert-patient">{{ alert.patient_name }}</div>
-                <div class="alert-details">{{ alert.details }}</div>
-                <div class="alert-actions">
-                  <button class="btn btn-primary btn-sm" onclick="viewAlert({{ alert.id }})">View Details</button>
-                  <button class="btn btn-outline btn-sm" onclick="markAsRead({{ alert.id }})">Mark as Read</button>
-                </div>
-              </div>
-              {% endfor %}
+              {# Placeholder for alerts #}
+              <p style="text-align: center; color: #888; padding: 2rem 0;">No recent alerts.</p>
             </div>
           </div>
         </div>
@@ -86,36 +77,67 @@
             <span class="close">&times;</span>
           </div>
           <div class="modal-body">
-            <div class="patient-details">
-              <!-- Patient details will be loaded here -->
-            </div>
             <div class="vital-signs-chart">
+              <h3>Vital Signs Trend</h3>
               <canvas id="vitalSignsChart"></canvas>
+              <p class="chart-empty-message" style="display: none; text-align: center; padding: 2rem; color: #888;">No recent vital signs data available to display a chart.</p>
+            </div>
+            <div class="patient-details">
+              <h3>Patient Info</h3>
             </div>
             <div class="medication-schedule">
-              <h3>Medication Schedule</h3>
-              <!-- Medication schedule will be loaded here -->
+              <h3>Today's Medication</h3>
             </div>
             <div class="recent-symptoms">
               <h3>Recent Symptoms</h3>
-              <!-- Recent symptoms will be loaded here -->
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Add Patient Modal -->
-      <div id="addPatientModal" class="modal">
+      <!-- Contact Patient Modal -->
+      <div id="contact-patient-modal" class="modal">
         <div class="modal-content">
           <div class="modal-header">
-            <h2>Add New Patient</h2>
-            <span class="close">&times;</span>
+            <h2 id="contact-modal-title">Contact Patient</h2>
+            <span class="close-btn" id="close-contact-modal">&times;</span>
+          </div>
+          <div class="modal-body">
+            <p><strong>Name:</strong> <span id="contact-patient-name"></span></p>
+            <p><strong>Email:</strong> <a id="contact-patient-email" href="#"></a></p>
+            <p><strong>Phone:</strong> <a id="contact-patient-phone" href="#"></a></p>
+          </div>
+          <div class="modal-footer">
+            <a id="email-patient-link" href="#" class="btn btn-primary"><i class="fas fa-envelope"></i> Send Email</a>
+            <a id="call-patient-link" href="#" class="btn btn-secondary"><i class="fas fa-phone-alt"></i> Call Now</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Add Patient Modal -->
+      <div id="addPatientModal" class="modal" style="display: none;">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Add or Link Patient</h2>
+            <span class="close" id="closeAddPatientModal">&times;</span>
           </div>
           <div class="modal-body">
             <form id="addPatientForm">
               <div class="form-group">
+                <label>Link Method</label>
+                <div style="display: flex; gap: 1.5rem; margin-bottom: 1rem;">
+                  <label><input type="radio" name="linkMethod" value="email" checked> By Email</label>
+                  <label><input type="radio" name="linkMethod" value="otp"> By OTP</label>
+                </div>
+              </div>
+              <div class="form-group" id="emailField">
                 <label for="patientEmail">Patient's Email</label>
-                <input type="email" id="patientEmail" required>
+                <input type="email" id="patientEmail">
+              </div>
+              <div class="form-group" id="otpField" style="display: none;">
+                <label for="patientOTP">Patient's OTP</label>
+                <input type="text" id="patientOTP" maxlength="8" pattern="[A-Za-z0-9]{6,8}">
+                <small>Ask the patient to generate an OTP from their dashboard.</small>
               </div>
               <div class="form-group">
                 <label for="relationship">Relationship</label>
@@ -127,17 +149,7 @@
                   <option value="other">Other</option>
                 </select>
               </div>
-              <div class="form-group">
-                <label for="phone">Your Phone Number</label>
-                <input type="tel" id="phone" required>
-              </div>
-              <div class="form-group">
-                <label class="checkbox-label">
-                  <input type="checkbox" id="emergencyContact" checked>
-                  I am an emergency contact for this patient
-                </label>
-              </div>
-              <button type="submit" class="btn btn-primary">Add Patient</button>
+              <button type="submit" class="btn btn-primary">Add/Link Patient</button>
             </form>
           </div>
         </div>
@@ -145,134 +157,438 @@
     </div>
   </div>
 </div>
+
 {% endblock %}
 
-{% block extra_js %}
+{% block extra_css %}
+<style>
+  body {
+    background: #f7f9fb;
+  }
+  .predictions-page {
+    padding-top: 2rem;
+    padding-bottom: 3.5rem;
+    background: #f7f9fb;
+    min-height: 100vh;
+  }
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .monitoring-section {
+    margin-bottom: 2rem;
+  }
+  .monitoring-section h2 {
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 0.5rem;
+  }
+  .monitoring-section p {
+    color: #4a90e2;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+  }
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+  }
+  @media (max-width: 900px) {
+    .grid-2 {
+      grid-template-columns: 1fr;
+    }
+  }
+  .card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(44, 62, 80, 0.07);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    transition: box-shadow 0.2s;
+  }
+  .card:hover {
+    box-shadow: 0 8px 32px rgba(44, 62, 80, 0.13);
+  }
+  .card h3 {
+    color: #1a1a2e;
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 1.2rem;
+  }
+  .patient-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+  }
+  .patient-card {
+    background: #fdfdff;
+    border: 1px solid #eef2f7;
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    transition: box-shadow 0.2s, border-color 0.2s;
+  }
+  .patient-card:hover {
+    box-shadow: 0 4px 16px rgba(44, 62, 80, 0.09);
+    border-color: #d8e2f0;
+  }
+  .patient-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .patient-name {
+    font-weight: 600;
+    color: #1a1a2e;
+    font-size: 1.1rem;
+  }
+  .patient-status {
+    padding: 0.3rem 1.1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  .status-normal {
+    background-color: #e6f4ea;
+    color: #1e7e34;
+  }
+  .status-warning {
+    background-color: #fff3cd;
+    color: #856404;
+  }
+  .status-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+  }
+  .patient-vitals {
+    display: flex;
+    justify-content: space-around;
+    gap: 1rem;
+    padding: 0.5rem 0;
+  }
+  .vital-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.95rem;
+  }
+  .vital-stat i {
+    color: #4a90e2;
+  }
+  .patient-contact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    color: #555;
+    padding: 0.5rem 0;
+    border-top: 1px solid #eef2f7;
+    border-bottom: 1px solid #eef2f7;
+  }
+  .patient-contact span {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .patient-actions {
+    display: flex;
+    gap: 0.7rem;
+    margin-top: 0.5rem;
+  }
+  .btn {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1.5px solid transparent;
+  }
+  .btn-primary {
+    background: #4a90e2;
+    color: #fff;
+  }
+  .btn-primary:hover {
+    background: #3578c7;
+  }
+  .btn-secondary {
+    background-color: #6c757d;
+    color: white;
+  }
+  .btn-secondary:hover {
+    background-color: #5a6268;
+  }
+  .btn.btn-sm {
+    border-radius: 8px;
+    padding: 0.4rem 1.1rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  .btn-outline.btn-sm {
+    background: #fff;
+    border-color: #4a90e2;
+    color: #4a90e2;
+  }
+  .btn-outline.btn-sm:hover {
+    background: #eaf2fb;
+  }
+  
+  /* Modal Styles */
+  .modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow: auto;
+    background: rgba(30, 42, 60, 0.4);
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-content {
+    background: #fff;
+    margin: 5% auto;
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(44, 62, 80, 0.18);
+    position: relative;
+    max-width: 540px;
+    width: 95%;
+    overflow: hidden;
+  }
+  .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.2rem 1.8rem;
+    background-color: #f7f9fb;
+    border-bottom: 1px solid #eef2f7;
+  }
+  .modal-header h2 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #1a1a2e;
+  }
+  .modal-header .close, .modal-header .close-btn {
+    font-size: 1.8rem;
+    color: #888;
+    cursor: pointer;
+    font-weight: 400;
+    border: none;
+    background: none;
+    outline: none;
+  }
+  .modal-body {
+    padding: 1.8rem;
+    font-size: 1rem;
+    color: #222;
+  }
+  .modal-footer {
+    padding: 1rem 1.8rem;
+    background-color: #f7f9fb;
+    border-top: 1px solid #eef2f7;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.8rem;
+  }
+  
+  #patientDetailsModal .modal-content {
+    max-width: 800px;
+  }
+  #patientDetailsModal .modal-body {
+    padding: 2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    background-color: #fdfdff;
+  }
+  #patientDetailsModal .vital-signs-chart, #patientDetailsModal .patient-details, #patientDetailsModal .medication-schedule, #patientDetailsModal .recent-symptoms {
+    grid-column: 1 / -1;
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 1px solid #eef2f7;
+  }
+  @media(min-width: 600px) {
+    #patientDetailsModal .patient-details { grid-column: 1 / 2; }
+    #patientDetailsModal .medication-schedule { grid-column: 2 / 3; }
+  }
+  #patientDetailsModal h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #1a1a2e;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eef2f7;
+  }
+  #patientDetailsModal ul {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 0;
+  }
+  #patientDetailsModal li {
+    font-size: 0.95rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  #patientDetailsModal li:last-child {
+    border-bottom: none;
+  }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  // Initialize socket connection
-  const socket = io();
-
-  // Listen for real-time updates
-  socket.on('patient_update', function(data) {
-    updatePatientCard(data);
-  });
-
-  function updatePatientCard(data) {
-    const patientCard = document.querySelector(`[data-patient-id="${data.patient_id}"]`);
-    if (patientCard) {
-      // Update vital signs
-      patientCard.querySelector('.temperature').textContent = `${data.temperature.toFixed(1)}°C`;
-      patientCard.querySelector('.spo2').textContent = `${data.spo2}%`;
-
-      // Update risk status
-      const statusElement = patientCard.querySelector('.patient-status');
-      if (data.crisis_predicted) {
-        statusElement.className = 'patient-status status-danger';
-        statusElement.textContent = 'High Risk';
-      } else if (data.crisis_probability > 0.5) {
-        statusElement.className = 'patient-status status-warning';
-        statusElement.textContent = 'Moderate Risk';
-      } else {
-        statusElement.className = 'patient-status status-normal';
-        statusElement.textContent = 'Low Risk';
-      }
-    }
-  }
-
-  function viewPatientDetails(patientId) {
-    // Load and display patient details
-    fetch(`/api/patient/${patientId}/details`)
-      .then(response => response.json())
-      .then(data => {
-        displayPatientDetails(data);
-        document.getElementById('patientDetailsModal').style.display = 'block';
-      });
-  }
-
-  function displayPatientDetails(data) {
-    const detailsDiv = document.querySelector('#patientDetailsModal .patient-details');
-    if (!data || !data.patient) {
-      detailsDiv.innerHTML = '<p>No details available.</p>';
-      return;
-    }
-    detailsDiv.innerHTML = `
-      <h4>${data.patient.name} (${data.patient.email})</h4>
-      <h5>Recent Vitals:</h5>
-      <ul>
-        ${data.readings.map(r => `<li>${r.timestamp}: Temp ${r.temperature}°C, SpO2 ${r.spo2}%, GSR ${r.gsr}</li>`).join('')}
-      </ul>
-      <h5>Recent Predictions:</h5>
-      <ul>
-        ${data.predictions.map(p => `<li>${p.timestamp}: Probability ${Math.round(p.probability*100)}%, Crisis: ${p.predicted ? 'Yes' : 'No'}</li>`).join('')}
-      </ul>
-    `;
-  }
-
-  function contactPatient(patientId) {
-    alert('Contact functionality coming soon!');
-  }
-
-  function addNewPatient() {
-    document.getElementById('addPatientModal').style.display = 'block';
-  }
-
-  // Robust modal close logic
-  document.querySelectorAll('.close').forEach(closeBtn => {
-    closeBtn.onclick = function() {
-      this.closest('.modal').style.display = 'none';
-    }
-  });
-
-  window.onclick = function(event) {
-    if (event.target.classList.contains('modal')) {
-      event.target.style.display = 'none';
-    }
-  }
-
-  // Add a cancel button to the add patient modal
-  const addPatientModal = document.getElementById('addPatientModal');
-  if (addPatientModal) {
-    let cancelBtn = addPatientModal.querySelector('.cancel-btn');
-    if (!cancelBtn) {
-      const footer = addPatientModal.querySelector('.modal-body');
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn btn-outline cancel-btn';
-      btn.textContent = 'Cancel';
-      btn.style.marginLeft = '1rem';
-      btn.onclick = function() {
-        addPatientModal.style.display = 'none';
-      };
-      footer.appendChild(btn);
-    }
-  }
-
-  // Handle add patient form submission
-  document.getElementById('addPatientForm').onsubmit = function(e) {
-    e.preventDefault();
-    const formData = {
-      patient_email: document.getElementById('patientEmail').value,
-      relationship: document.getElementById('relationship').value,
-      phone: document.getElementById('phone').value,
-      emergency_contact: document.getElementById('emergencyContact').checked
-    };
-
-    fetch('/api/caregiver/add_patient', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(formData)
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        document.getElementById('addPatientModal').style.display = 'none';
-        location.reload();
-      } else {
-        alert(data.error);
-      }
+document.addEventListener('DOMContentLoaded', function() {
+    let vitalSignsChartInstance = null;
+    const addPatientModal = document.getElementById('addPatientModal');
+    const patientDetailsModal = document.getElementById('patientDetailsModal');
+    const contactModal = document.getElementById('contact-patient-modal');
+    
+    // --- Event Listeners ---
+    document.getElementById('add-patient-btn-main').addEventListener('click', () => { addPatientModal.style.display = 'flex'; });
+    document.querySelectorAll('.view-details-btn').forEach(btn => btn.addEventListener('click', handleViewDetails));
+    document.querySelectorAll('.contact-btn').forEach(btn => btn.addEventListener('click', handleContact));
+    
+    // --- Modal Closing ---
+    document.getElementById('closeAddPatientModal').addEventListener('click', () => { addPatientModal.style.display = 'none'; });
+    patientDetailsModal.querySelector('.close').addEventListener('click', () => { patientDetailsModal.style.display = 'none'; });
+    document.getElementById('close-contact-modal').addEventListener('click', () => { contactModal.style.display = 'none'; });
+    window.addEventListener('click', (event) => {
+      if (event.target == addPatientModal) addPatientModal.style.display = 'none';
+      if (event.target == patientDetailsModal) patientDetailsModal.style.display = 'none';
+      if (event.target == contactModal) contactModal.style.display = 'none';
     });
-  };
+
+    // --- "Add Patient" Form ---
+    document.querySelectorAll('input[name="linkMethod"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        document.getElementById('emailField').style.display = e.target.value === 'email' ? 'block' : 'none';
+        document.getElementById('otpField').style.display = e.target.value === 'otp' ? 'block' : 'none';
+      });
+    });
+    document.getElementById('addPatientForm').addEventListener('submit', handleAddPatientSubmit);
+
+    // --- Handler Functions ---
+    function handleViewDetails(event) {
+        const patientId = event.currentTarget.dataset.patientId;
+        fetch(`/api/patient/${patientId}/details`)
+            .then(response => response.ok ? response.json() : Promise.reject('Failed to load details'))
+            .then(data => {
+                if (data.success) {
+                    displayPatientDetails(data);
+                    patientDetailsModal.style.display = 'flex';
+                } else {
+                    alert(data.error || 'Could not fetch patient details.');
+                }
+            })
+            .catch(error => console.error('Error fetching patient details:', error));
+    }
+
+    function handleContact(event) {
+        const button = event.currentTarget;
+        const name = button.dataset.patientName;
+        const email = button.dataset.patientEmail;
+        const phone = button.dataset.patientPhone;
+
+        document.getElementById('contact-patient-name').textContent = name;
+        const emailLink = document.getElementById('contact-patient-email');
+        emailLink.textContent = email;
+        emailLink.href = `mailto:${email}`;
+        document.getElementById('email-patient-link').href = `mailto:${email}`;
+        
+        const phoneLink = document.getElementById('contact-patient-phone');
+        const callLink = document.getElementById('call-patient-link');
+        phoneLink.textContent = phone;
+        if (phone && phone !== 'N/A') {
+            phoneLink.href = `tel:${phone}`;
+            callLink.href = `tel:${phone}`;
+            callLink.style.display = 'inline-block';
+        } else {
+            phoneLink.href = '#';
+            callLink.style.display = 'none';
+        }
+        contactModal.style.display = 'flex';
+    }
+
+    function handleAddPatientSubmit(e) {
+        e.preventDefault();
+        const linkMethod = document.querySelector('input[name="linkMethod"]:checked').value;
+        const formData = {
+          relationship: document.getElementById('relationship').value,
+          link_method: linkMethod,
+          patient_email: document.getElementById('patientEmail').value,
+          patient_otp: document.getElementById('patientOTP').value
+        };
+
+        fetch('/api/caregiver/add_patient', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(formData)
+        })
+        .then(response => response.json())
+        .then(data => {
+          alert(data.message || data.error);
+          if (data.success) {
+            addPatientModal.style.display = 'none';
+            if (linkMethod === 'otp') location.reload();
+          }
+        })
+        .catch(error => console.error('Error:', error));
+    }
+    
+    function displayPatientDetails(data) {
+        document.querySelector('#patientDetailsModal .modal-header h2').textContent = `Details for ${data.patient.name}`;
+        const detailsDiv = document.querySelector('#patientDetailsModal .patient-details');
+        detailsDiv.innerHTML = `<h3>Patient Info</h3><p><strong>Email:</strong> ${data.patient.email}</p><p><strong>Age:</strong> ${data.patient.age||'N/A'}</p><p><strong>Gender:</strong> ${data.patient.gender||'N/A'}</p>`;
+        
+        const medicationDiv = document.querySelector('#patientDetailsModal .medication-schedule');
+        let medHtml = '<h3>Today\'s Medication</h3>';
+        if (data.medication_schedule && data.medication_schedule.length > 0) {
+            medHtml += `<ul>${data.medication_schedule.map(med => `<li>${med.name} at ${med.time} - ${med.is_taken?'Taken':'Pending'}</li>`).join('')}</ul>`;
+        } else { medHtml += '<p>No medications scheduled for today.</p>'; }
+        medicationDiv.innerHTML = medHtml;
+
+        const symptomsDiv = document.querySelector('#patientDetailsModal .recent-symptoms');
+        let symptomHtml = '<h3>Recent Symptoms</h3>';
+        if (data.symptoms && data.symptoms.length > 0) {
+            symptomHtml += `<ul>${data.symptoms.slice(0,5).map(s => `<li><strong>${s.date}:</strong> Pain ${s.pain_level}/10. Notes: ${s.notes||'None'}.</li>`).join('')}</ul>`;
+        } else { symptomHtml += '<p>No symptoms logged recently.</p>'; }
+        symptomsDiv.innerHTML = symptomHtml;
+
+        renderVitalSignsChart(data.readings);
+    }
+
+    function renderVitalSignsChart(readings) {
+        const ctx = document.getElementById('vitalSignsChart').getContext('2d');
+        const emptyMsg = document.querySelector('.chart-empty-message');
+        if (vitalSignsChartInstance) vitalSignsChartInstance.destroy();
+        if (readings && readings.length > 0) {
+            ctx.canvas.style.display = 'block';
+            emptyMsg.style.display = 'none';
+            vitalSignsChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: readings.map(r => new Date(r.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })),
+                    datasets: [
+                        { label: 'Temp (°C)', data: readings.map(r => r.temperature), borderColor: '#ff6384', yAxisID: 'y' },
+                        { label: 'SpO2 (%)', data: readings.map(r => r.spo2), borderColor: '#36a2eb', yAxisID: 'y1' }
+                    ]
+                },
+                options: {
+                    scales: {
+                        y: { position: 'left', title: { display: true, text: 'Temp (°C)' } },
+                        y1: { position: 'right', title: { display: true, text: 'SpO2 (%)' }, grid: { drawOnChartArea: false } }
+                    }
+                }
+            });
+        } else {
+            ctx.canvas.style.display = 'none';
+            emptyMsg.style.display = 'block';
+        }
+    }
+});
 </script>
 {% endblock %} 

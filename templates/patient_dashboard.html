@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Dashboard - CellGuard{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 700px; margin: 2rem auto;">
+  <h2 style="margin-bottom: 1.5rem;">Welcome, {{ current_user.name }}</h2>
+  <div class="card" style="padding: 2rem; margin-bottom: 2rem;">
+    <h4>Your Latest Metrics</h4>
+    <ul style="margin-top: 1rem;">
+      <li><b>Temperature:</b> {{ latest_reading.temperature if latest_reading else '--' }} °C</li>
+      <li><b>SpO2:</b> {{ latest_reading.spo2 if latest_reading else '--' }} %</li>
+      <li><b>GSR:</b> {{ latest_reading.gsr if latest_reading else '--' }}</li>
+      <li><b>Latest Crisis Risk:</b> {% if latest_prediction %}{{ 'High' if latest_prediction.crisis_predicted else 'Low' }} ({{ (latest_prediction.crisis_probability * 100) | round(1) }}%){% else %}--{% endif %}</li>
+    </ul>
+  </div>
+  <div class="card" style="padding: 2rem;">
+    <h4>Link with Caregiver</h4>
+    <div id="otp-section">
+      {% if active_otp %}
+        <div style="margin-bottom: 1rem;">
+          <b>Your OTP:</b> <span id="otp-code" style="font-size: 1.3rem; color: #4a90e2;">{{ active_otp.otp_code }}</span>
+          <br><small>Valid until: {{ active_otp.expires_at.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+        </div>
+      {% endif %}
+      <button id="generate-otp-btn" class="btn btn-primary">Generate OTP for Caregiver</button>
+      <div id="otp-message" style="margin-top: 1rem; color: #3578c7;"></div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('generate-otp-btn').onclick = function() {
+  fetch('/api/patient/generate_otp', {method: 'POST'})
+    .then(resp => resp.json())
+    .then(data => {
+      if (data.otp) {
+        document.getElementById('otp-section').innerHTML = `
+          <div style="margin-bottom: 1rem;">
+            <b>Your OTP:</b> <span id="otp-code" style="font-size: 1.3rem; color: #4a90e2;">${data.otp}</span><br>
+            <small>Valid until: ${new Date(data.expires_at).toLocaleString()}</small>
+          </div>
+          <button id=\"generate-otp-btn\" class=\"btn btn-primary\">Generate OTP for Caregiver</button>
+          <div id=\"otp-message\" style=\"margin-top: 1rem; color: #3578c7;\"></div>
+        `;
+        document.getElementById('generate-otp-btn').onclick = arguments.callee;
+        document.getElementById('otp-message').textContent = 'Share this code with your caregiver. It is valid for 10 minutes.';
+      } else {
+        document.getElementById('otp-message').textContent = data.error || 'Could not generate OTP.';
+      }
+    });
+};
+</script>
+{% endblock %} 

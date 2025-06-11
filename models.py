@@ -168,4 +168,39 @@ class CrisisPrediction(db.Model):
             'crisis_probability': self.crisis_probability,
             'features': self.features,
             'recommendations': self.recommendations
-        } 
+        }
+
+class CaregiverPatientLink(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    caregiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    patient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    relationship = db.Column(db.String(50), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # Define relationships
+    caregiver = db.relationship('User', foreign_keys=[caregiver_id], backref='patient_links')
+    patient = db.relationship('User', foreign_keys=[patient_id], backref='caregiver_links')
+
+    # Add unique constraint to prevent duplicate links
+    __table_args__ = (db.UniqueConstraint('caregiver_id', 'patient_id', name='_caregiver_patient_uc'),)
+
+class CaregiverLinkToken(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(100), unique=True, nullable=False)
+    caregiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    patient_email = db.Column(db.String(120), nullable=False)
+    relationship = db.Column(db.String(50), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False)
+
+    caregiver = db.relationship('User', backref='pending_links')
+
+class PatientOTP(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    otp_code = db.Column(db.String(8), unique=True, nullable=False)
+    patient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime)
+    used = db.Column(db.Boolean, default=False)
+    
+    patient = db.relationship('User', backref=db.backref('otps', lazy=True)) 

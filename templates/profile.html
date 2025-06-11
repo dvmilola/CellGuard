@@ -1,45 +1,11 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Your Profile - CellGuard</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
-  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
-</head>
-<body>
-  <nav>
-    <div class="container nav-container">
-      <div class="logo">
-        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
-        CellGuard
-      </div>
-      <div class="nav-links">
-        <a href="/" class="nav-link">Home</a>
-        <a href="/predictions" class="nav-link">Crisis Prediction</a>
-        <a href="/medications" class="nav-link">Medication</a>
-        <a href="/tracker" class="nav-link">Symptom Tracker</a>
-        <a href="/library" class="nav-link">Knowledge Library</a>
-        <a href="/emergency" class="nav-link">Emergency Contacts</a>
-        <a href="/profile" class="nav-link active">Profile</a>
-        <a href="/provider" class="nav-link">Healthcare Provider</a>
-        <a href="/settings" class="nav-link">Settings</a>
-      </div>
-      <div class="auth-buttons">
-        <button class="btn btn-outline" id="login-btn">Log In</button>
-        <button class="btn btn-primary" id="signup-btn">Sign Up</button>
-      </div>
-    </div>
-  </nav>
-  
-  <main>
-    <section>
-      <div class="container">
+{% extends "base.html" %}
+
+{% block title %}Your Profile - CellGuard{% endblock %}
+
+{% block content %}
         <h1>Your Profile</h1>
         <p>Manage your personal information and health records.</p>
-        
-        <div class="grid-2">
+  <div class="profile-grid">
           <div class="card">
             <h3>Personal Information</h3>
             <form id="profile-form">
@@ -47,32 +13,25 @@
                 <label for="profile-name">Full Name</label>
                 <input type="text" id="profile-name" value="John Doe" required>
               </div>
-              
               <div class="form-group">
                 <label for="profile-dob">Date of Birth</label>
                 <input type="date" id="profile-dob" value="1990-01-01" required>
               </div>
-              
               <div class="form-group">
                 <label for="profile-email">Email</label>
                 <input type="email" id="profile-email" value="john.doe@email.com" required>
               </div>
-              
               <div class="form-group">
                 <label for="profile-phone">Phone Number</label>
                 <input type="tel" id="profile-phone" value="(555) 123-4567" required>
               </div>
-              
               <div class="form-group">
                 <label for="profile-address">Address</label>
                 <textarea id="profile-address" rows="3" required>123 Main St, City, State 12345</textarea>
               </div>
-              
               <button type="submit" class="btn btn-primary" style="width: 100%">Save Changes</button>
             </form>
           </div>
-          
-          <div>
             <div class="card">
               <h3>Health Information</h3>
               <form id="health-form">
@@ -89,7 +48,6 @@
                     <option value="O-">O-</option>
                   </select>
                 </div>
-                
                 <div class="form-group">
                   <label for="genotype">Sickle Cell Genotype</label>
                   <select id="genotype" required>
@@ -99,49 +57,39 @@
                     <option value="Sβ0">Sβ0</option>
                   </select>
                 </div>
-                
                 <div class="form-group">
                   <label for="allergies">Allergies</label>
                   <textarea id="allergies" rows="3"></textarea>
                 </div>
-                
                 <div class="form-group">
                   <label for="conditions">Other Medical Conditions</label>
                   <textarea id="conditions" rows="3"></textarea>
                 </div>
-                
                 <button type="submit" class="btn btn-primary" style="width: 100%">Save Health Info</button>
               </form>
             </div>
-            
-            <div class="card" style="margin-top: 2rem">
+    <div class="card">
               <h3>Insurance Information</h3>
               <form id="insurance-form">
                 <div class="form-group">
                   <label for="insurance-provider">Insurance Provider</label>
                   <input type="text" id="insurance-provider" required>
                 </div>
-                
                 <div class="form-group">
                   <label for="policy-number">Policy Number</label>
                   <input type="text" id="policy-number" required>
                 </div>
-                
                 <div class="form-group">
                   <label for="group-number">Group Number (if applicable)</label>
                   <input type="text" id="group-number">
                 </div>
-                
                 <button type="submit" class="btn btn-primary" style="width: 100%">Save Insurance Info</button>
               </form>
             </div>
           </div>
-        </div>
-        
         <div class="card" style="margin-top: 2rem">
           <h3>Healthcare Providers</h3>
           <p>Manage your healthcare providers and their contact information.</p>
-          
           <div class="provider-list">
             <div class="provider-card">
               <div class="provider-header">
@@ -158,7 +106,6 @@
                 <button class="btn btn-outline btn-sm btn-danger"><i class="fas fa-trash"></i> Delete</button>
               </div>
             </div>
-            
             <div class="provider-card">
               <div class="provider-header">
                 <div class="provider-name">Dr. Michael Chen</div>
@@ -175,112 +122,6 @@
               </div>
             </div>
           </div>
-          
           <button class="btn btn-primary" style="margin-top: 1rem"><i class="fas fa-plus"></i> Add Healthcare Provider</button>
-        </div>
-      </div>
-    </section>
-  </main>
-  
-  <!-- Login Modal -->
-  <div id="login-modal" class="modal">
-    <div class="modal-content">
-      <h2>Login to CellGuard</h2>
-      <form id="login-form">
-        <div class="form-group">
-          <label for="login-email">Email</label>
-          <input type="email" id="login-email" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="login-password">Password</label>
-          <input type="password" id="login-password" required>
-        </div>
-        
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input type="checkbox"> Remember me
-          </label>
-        </div>
-        
-        <button type="submit" class="btn btn-primary" style="width: 100%">Login</button>
-      </form>
-      
-      <div style="text-align: center; margin-top: 1rem">
-        <a href="#" id="forgot-password">Forgot Password?</a>
-      </div>
-      
-      <div style="text-align: center; margin-top: 1rem">
-        Don't have an account? <a href="#" id="show-signup">Sign Up</a>
-      </div>
-    </div>
   </div>
-  
-  <!-- Signup Modal -->
-  <div id="signup-modal" class="modal">
-    <div class="modal-content">
-      <h2>Create Your CellGuard Account</h2>
-      <form id="signup-form">
-        <div class="form-group">
-          <label for="signup-name">Full Name</label>
-          <input type="text" id="signup-name" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="signup-email">Email</label>
-          <input type="email" id="signup-email" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="signup-password">Password</label>
-          <input type="password" id="signup-password" required>
-        </div>
-        
-        <div class="form-group">
-          <label for="signup-confirm-password">Confirm Password</label>
-          <input type="password" id="signup-confirm-password" required>
-        </div>
-        
-        <div class="form-group">
-          <label class="checkbox-label">
-            <input type="checkbox" required> I agree to the Terms of Service and Privacy Policy
-          </label>
-        </div>
-        
-        <button type="submit" class="btn btn-primary" style="width: 100%">Create Account</button>
-      </form>
-      
-      <div style="text-align: center; margin-top: 1rem">
-        Already have an account? <a href="#" id="show-login">Login</a>
-      </div>
-    </div>
-  </div>
-  
-  <footer>
-    <div class="container">
-      <div class="footer-content">
-        <div class="footer-logo">
-          <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
-          CellGuard
-        </div>
-        <div class="footer-links">
-          <a href="/">Home</a>
-          <a href="/about">About</a>
-          <a href="/privacy">Privacy Policy</a>
-          <a href="/terms">Terms of Service</a>
-          <a href="/contact">Contact Us</a>
-        </div>
-        <div class="footer-social">
-          <a href="#"><i class="fab fa-facebook"></i></a>
-          <a href="#"><i class="fab fa-twitter"></i></a>
-          <a href="#"><i class="fab fa-instagram"></i></a>
-          <a href="#"><i class="fab fa-linkedin"></i></a>
-        </div>
-      </div>
-      <div class="footer-bottom">
-        <p>&copy; 2025 CellGuard. All rights reserved.</p>
-      </div>
-    </div>
-  </footer>
-</body>
-</html> 
+{% endblock %} 

@@ -958,4 +958,76 @@ document.addEventListener('DOMContentLoaded', function() {
     // The current save logic assumes it can get the correct YYYY-MM-DD date for the log.
   }
   // --- End Symptom Tracker Page Specific Functions ---
+
+  // "Add Patient" Modal functionality
+  const addPatientModal = document.getElementById('addPatientModal');
+  const openAddPatientBtn = document.getElementById('add-patient-btn-main');
+  const closeAddPatientBtn = document.getElementById('closeAddPatientModal');
+  const addPatientForm = document.getElementById('addPatientForm');
+  const linkMethodRadios = document.querySelectorAll('input[name="linkMethod"]');
+  const emailField = document.getElementById('emailField');
+  const otpField = document.getElementById('otpField');
+
+  if (openAddPatientBtn) {
+    openAddPatientBtn.addEventListener('click', () => {
+      addPatientModal.style.display = 'block';
+    });
+  }
+
+  if (closeAddPatientBtn) {
+    closeAddPatientBtn.addEventListener('click', () => {
+      addPatientModal.style.display = 'none';
+    });
+  }
+
+  linkMethodRadios.forEach(radio => {
+    radio.addEventListener('change', () => {
+      if (radio.value === 'email') {
+        emailField.style.display = 'block';
+        otpField.style.display = 'none';
+      } else {
+        emailField.style.display = 'none';
+        otpField.style.display = 'block';
+      }
+    });
+  });
+
+  if (addPatientForm) {
+    addPatientForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(addPatientForm);
+      const linkMethod = formData.get('linkMethod');
+      const relationship = document.getElementById('relationship').value;
+      const patientEmail = document.getElementById('patientEmail').value;
+      const patientOTP = document.getElementById('patientOTP').value;
+
+      const body = {
+        linkMethod,
+        relationship,
+        email: linkMethod === 'email' ? patientEmail : undefined,
+        otp: linkMethod === 'otp' ? patientOTP : undefined
+      };
+
+      try {
+        const response = await fetch('/api/caregiver/link-patient', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+          alert(result.message);
+          addPatientModal.style.display = 'none';
+          location.reload(); // Reload the page to show the new patient
+        } else {
+          throw new Error(result.message || 'Failed to link patient.');
+        }
+      } catch (error) {
+        console.error('Error linking patient:', error);
+        alert(error.message);
+      }
+    });
+  }
 });

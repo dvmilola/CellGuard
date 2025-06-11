@@ -21,13 +21,18 @@ from flask_migrate import Migrate
 from models import (
     db, User, SensorReading, Prediction, EmergencyContact, 
     HealthcareProvider, Medication, MedicationSchedule, 
-    MedicationRefill, Symptom, CrisisPrediction
+    MedicationRefill, Symptom, CrisisPrediction, PatientOTP,
+    CaregiverPatientLink, CaregiverLinkToken
 )
 from flask_socketio import SocketIO, emit
 import threading
 import time
 from sqlalchemy.orm import joinedload
 from collections import Counter # For most_common_symptom
+import string
+from random import choices
+import secrets
+from flask_mail import Mail, Message
 
 
 # Configure the application
@@ -43,8 +48,18 @@ app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'  # Change from 'None' to 'Lax'
 app.config['REMEMBER_COOKIE_SECURE'] = False  # Change to False for local development
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
+
+# Email configuration
+app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() in ['true', 'on', '1']
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
+
 db.init_app(app)
 migrate = Migrate(app, db)
+mail = Mail(app)
 
 # Initialize Flask-Login
 login_manager = LoginManager()
@@ -205,39 +220,23 @@ def signup_page():
 
 @app.route('/api/login', methods=['POST'])
 def login():
-    try:
-        print("\n[DEBUG] Login attempt received")
-        data = request.get_json()
-        print(f"[DEBUG] Login data: {data}")
-        
-        email = data.get('email')
-        password = data.get('password')
-        
-        if not email or not password:
-            print("[DEBUG] Missing email or password")
-            return jsonify({'error': 'Email and password are required'}), 400
-            
-        user = User.query.filter_by(email=email).first()
-        if not user or not user.check_password(password):
-            print("[DEBUG] Invalid credentials")
-            return jsonify({'error': 'Invalid email or password'}), 401
-            
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    
+    user = User.query.filter_by(email=email).first()
+    
+    if user and user.check_password(password):
         login_user(user, remember=True)
-        print(f"[DEBUG] User {user.email} logged in successfully")
-        
+        session['user_id'] = user.id  # Explicitly set user_id in session
         return jsonify({
             'message': 'Login successful',
-            'user': {
-                'id': user.id,
-                'name': user.name,
-                'email': user.email,
-                'user_type': user.user_type
-            }
+            'user_type': user.user_type
         })
-        
-    except Exception as e:
-        print(f"[ERROR] Login error: {str(e)}")
-        return jsonify({'error': 'An error occurred during login'}), 500
+    else:
+        return jsonify({
+            'error': 'Invalid email or password'
+        }), 401
 
 @app.route('/logout')
 @login_required
@@ -270,9 +269,11 @@ def api_signup():
     try:
         db.session.add(new_user)
         db.session.commit()
+        # Remove automatic login
         return jsonify({
             'success': True,
-            'message': 'Account created successfully!'
+            'message': 'Account created successfully. Please log in.',
+            'redirect_url': '/login'
         })
     except Exception as e:
         db.session.rollback()
@@ -1143,6 +1144,317 @@ def create_medication_schedules(date):
         print(f"Successfully created {schedules_created_count} new schedule(s).")
     else:
         print("No new schedules needed to be created.")
+
+@app.route('/caregiver')
+@login_required
+def caregiver_dashboard():
+    """
+    Render the caregiver's personalized dashboard.
+    - Ensure only authenticated caregivers can access this.
+    - Fetch the list of patients assigned to this caregiver.
+    - For each patient, get their latest sensor reading and prediction.
+    """
+    if current_user.user_type != 'caregiver':
+        flash('You are not authorized to access this page.', 'danger')
+        return redirect(url_for('home'))
+
+    # Fetch patients linked to this caregiver
+    caregiver_id = current_user.id
+    linked_patients = (db.session.query(User, CaregiverPatientLink)
+                       .join(CaregiverPatientLink, User.id == CaregiverPatientLink.patient_id)
+                       .filter(CaregiverPatientLink.caregiver_id == caregiver_id)
+                       .all())
+
+    patients_data = []
+    for patient, link in linked_patients:
+        latest_reading = (SensorReading.query
+                          .filter_by(user_id=patient.id)
+                          .order_by(SensorReading.timestamp.desc())
+                          .first())
+        latest_prediction = (CrisisPrediction.query
+                             .filter_by(user_id=patient.id)
+                             .order_by(CrisisPrediction.timestamp.desc())
+                             .first())
+        patients_data.append({
+            'patient': patient,
+            'link': link,
+            'latest_reading': latest_reading,
+            'latest_prediction': latest_prediction,
+        })
+
+    return render_template('caregiver.html', patients=patients_data)
+
+@app.route('/api/patient/<int:patient_id>/details', methods=['GET'])
+@login_required
+def get_patient_details(patient_id):
+    """
+    Fetch detailed information for a specific patient.
+    This is called by the caregiver dashboard to populate the patient details modal.
+    """
+    # Security check: Ensure the current user is a caregiver linked to this patient
+    if current_user.user_type != 'caregiver':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    link = CaregiverPatientLink.query.filter_by(
+        caregiver_id=current_user.id,
+        patient_id=patient_id
+    ).first()
+
+    if not link:
+        return jsonify({'error': 'You are not linked to this patient'}), 403
+
+    patient = User.query.get_or_404(patient_id)
+
+    # Fetch recent sensor readings for the chart (e.g., last 24 hours)
+    one_day_ago = datetime.utcnow() - timedelta(days=1)
+    sensor_readings = (SensorReading.query
+                       .filter(SensorReading.user_id == patient_id)
+                       .filter(SensorReading.timestamp >= one_day_ago)
+                       .order_by(SensorReading.timestamp.asc())
+                       .all())
+
+    # Fetch today's medication schedule
+    today = datetime.utcnow().date()
+    medication_schedule = (MedicationSchedule.query
+                           .join(Medication)
+                           .filter(Medication.user_id == patient_id)
+                           .filter(MedicationSchedule.scheduled_date == today)
+                           .all())
+
+    # Fetch recent symptoms (e.g., last 7 days)
+    seven_days_ago = datetime.utcnow().date() - timedelta(days=7)
+    recent_symptoms = (Symptom.query
+                       .filter(Symptom.user_id == patient_id)
+                       .filter(Symptom.date >= seven_days_ago)
+                       .order_by(Symptom.date.desc())
+                       .all())
+
+    return jsonify({
+        'patient': {
+            'id': patient.id,
+            'name': patient.name,
+            'email': patient.email,
+            'age': patient.age,
+            'gender': patient.gender
+        },
+        'sensor_readings': [r.to_dict() for r in sensor_readings],
+        'medication_schedule': [{
+            'medication_name': s.medication.name,
+            'dosage': s.medication.dosage,
+            'time': s.time.strftime('%H:%M'),
+            'is_taken': s.is_taken
+        } for s in medication_schedule],
+        'recent_symptoms': [{
+            'date': s.date.isoformat(),
+            'pain_level': s.pain_level,
+            'symptoms': s.symptoms
+        } for s in recent_symptoms]
+    })
+
+@app.route('/patient')
+@login_required
+def patient_dashboard():
+    print(f"[DEBUG] current_user: {current_user.name}, user_type: {getattr(current_user, 'user_type', None)}")
+    if current_user.user_type != 'patient':
+        flash('Access denied. This page is for patients only.', 'error')
+        # Redirect caregivers to their dashboard
+        if current_user.user_type == 'caregiver':
+            return redirect(url_for('caregiver_dashboard'))
+        return redirect(url_for('home'))
+    # Get latest predictions and readings
+    latest_prediction = CrisisPrediction.query.filter_by(user_id=current_user.id).order_by(CrisisPrediction.timestamp.desc()).first()
+    latest_reading = SensorReading.query.filter_by(user_id=current_user.id).order_by(SensorReading.timestamp.desc()).first()
+    # Get any active OTPs
+    active_otp = PatientOTP.query.filter_by(patient_id=current_user.id, used=False).filter(PatientOTP.expires_at > datetime.utcnow()).order_by(PatientOTP.created_at.desc()).first()
+    return render_template('patient_dashboard.html', latest_prediction=latest_prediction, latest_reading=latest_reading, active_otp=active_otp)
+
+@app.route('/api/patient/generate_otp', methods=['POST'])
+@login_required
+def generate_otp():
+    if current_user.user_type != 'patient':
+        return jsonify({'error': 'Only patients can generate OTPs.'}), 403
+    code = ''.join(choices(string.ascii_uppercase + string.digits, k=6))
+    expires_at = datetime.utcnow() + timedelta(minutes=10)
+    otp = PatientOTP(otp_code=code, patient_id=current_user.id, created_at=datetime.utcnow(), expires_at=expires_at, used=False)
+    db.session.add(otp)
+    db.session.commit()
+    return jsonify({'otp': code, 'expires_at': expires_at.isoformat()})
+
+def send_confirmation_email(patient_email, token, caregiver):
+    """
+    Sends a confirmation email to the patient using Flask-Mail.
+    """
+    if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
+        print("\n" + "="*80)
+        print("WARNING: MAIL_USERNAME or MAIL_PASSWORD not configured.")
+        print("Email sending is disabled.")
+        # Fallback to console for testing purposes
+        confirmation_link = url_for('confirm_link', token=token, _external=True)
+        print(f"SIMULATING EMAIL to {patient_email}")
+        print(f"CONFIRMATION LINK (for testing): {confirmation_link}")
+        print("="*80 + "\n")
+        return False
+
+    confirmation_link = url_for('confirm_link', token=token, _external=True)
+    
+    html_body = render_template(
+        'emails/caregiver_request.html', 
+        caregiver_name=caregiver.name,
+        confirmation_link=confirmation_link
+    )
+    
+    msg = Message(
+        subject=f"Caregiver Request from {caregiver.name}",
+        recipients=[patient_email],
+        html=html_body
+    )
+    
+    try:
+        mail.send(msg)
+        print(f"Successfully sent confirmation email to {patient_email}")
+        return True
+    except Exception as e:
+        print(f"Failed to send email: {e}")
+        return False
+
+@app.route('/api/caregiver/link-patient', methods=['POST'])
+@login_required
+def link_patient():
+    """
+    Links a patient to the currently logged-in caregiver.
+    """
+    if current_user.user_type != 'caregiver':
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+
+    data = request.get_json()
+    link_method = data.get('linkMethod')
+    relationship = data.get('relationship')
+    caregiver_id = current_user.id
+
+    if not relationship:
+        return jsonify({'success': False, 'message': 'Relationship is required.'}), 400
+
+    patient_to_link = None
+
+    if link_method == 'email':
+        email = data.get('email')
+        if not email:
+            return jsonify({'success': False, 'message': 'Patient email is required.'}), 400
+        
+        patient_to_link = User.query.filter_by(email=email, user_type='patient').first()
+        if not patient_to_link:
+            return jsonify({'success': False, 'message': 'No patient found with that email.'}), 404
+        
+        # Generate a secure token
+        token = secrets.token_urlsafe(32)
+        expires_at = datetime.utcnow() + timedelta(hours=24)
+
+        # Store the token
+        new_token = CaregiverLinkToken(
+            token=token,
+            caregiver_id=caregiver_id,
+            patient_email=email,
+            relationship=relationship,
+            expires_at=expires_at
+        )
+        db.session.add(new_token)
+        db.session.commit()
+
+        # Send the confirmation email
+        email_sent = send_confirmation_email(email, token, current_user)
+
+        if email_sent:
+            return jsonify({
+                'success': True,
+                'message': 'A confirmation request has been sent to the patient.'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Could not send confirmation email. Please check server configuration.'
+            }), 500
+
+    elif link_method == 'otp':
+        otp_code = data.get('otp')
+        if not otp_code:
+            return jsonify({'success': False, 'message': 'Patient OTP is required.'}), 400
+
+        otp_record = PatientOTP.query.filter_by(otp_code=otp_code, used=False).first()
+        if not otp_record or otp_record.expires_at < datetime.utcnow():
+            return jsonify({'success': False, 'message': 'Invalid or expired OTP.'}), 400
+        
+        patient_to_link = User.query.get(otp_record.patient_id)
+        otp_record.used = True
+        
+        # If using OTP, we can link directly
+        if patient_to_link:
+            existing_link = CaregiverPatientLink.query.filter_by(
+                caregiver_id=caregiver_id,
+                patient_id=patient_to_link.id
+            ).first()
+
+            if existing_link:
+                return jsonify({'success': False, 'message': 'You are already linked to this patient.'}), 409
+
+            new_link = CaregiverPatientLink(
+                caregiver_id=caregiver_id,
+                patient_id=patient_to_link.id,
+                relationship=relationship
+            )
+            db.session.add(new_link)
+            db.session.commit()
+
+            return jsonify({
+                'success': True, 
+                'message': f'Successfully linked to patient: {patient_to_link.name}'
+            })
+
+    return jsonify({'success': False, 'message': 'Could not process link request.'}), 500
+
+@app.route('/api/caregiver/confirm-link/<token>')
+def confirm_link(token):
+    """
+    Confirms the link between a caregiver and a patient via a token from email.
+    """
+    link_request = CaregiverLinkToken.query.filter_by(token=token).first()
+
+    if not link_request or link_request.expires_at < datetime.utcnow():
+        # In a real app, you would render a proper error page
+        return "This confirmation link is invalid or has expired.", 400
+
+    patient = User.query.filter_by(email=link_request.patient_email, user_type='patient').first()
+    caregiver = User.query.get(link_request.caregiver_id)
+
+    if not patient or not caregiver:
+        return "Could not find matching user accounts.", 404
+    
+    # Check if link already exists
+    existing_link = CaregiverPatientLink.query.filter_by(
+        caregiver_id=caregiver.id,
+        patient_id=patient.id
+    ).first()
+
+    if existing_link:
+        # Link already exists, so we can just inform the user and clean up the token
+        db.session.delete(link_request)
+        db.session.commit()
+        return "You are already linked with this caregiver.", 200
+
+    # Create the link
+    new_link = CaregiverPatientLink(
+        caregiver_id=caregiver.id,
+        patient_id=patient.id,
+        relationship=link_request.relationship
+    )
+    db.session.add(new_link)
+    
+    # Delete the used token
+    db.session.delete(link_request)
+    
+    db.session.commit()
+
+    # In a real app, you would render a nice confirmation page
+    return f"Success! You have been linked with your caregiver, {caregiver.name}. You can now close this window."
 
 # Make sure templates directory exists
 os.makedirs('templates', exist_ok=True)

@@ -136,7 +136,14 @@
       .then(response => response.json())
       .then(data => {
         if (data.message === 'Login successful') {
-          window.location.href = '/predictions';
+          // Redirect based on user type
+          if (data.user_type === 'caregiver') {
+            window.location.href = '/caregiver';
+          } else if (data.user_type === 'healthcare-provider') {
+            window.location.href = '/provider';
+          } else {
+            window.location.href = '/predictions';
+          }
         } else {
           alert(data.error || 'Login failed. Please try again.');
         }

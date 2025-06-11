@@ -2,12 +2,12 @@ from app import app, db
 from models import User
 
 with app.app_context():
-    # Find the user
-    user = User.query.filter_by(email='adamilola311@gmail.com').first()
+    # Find the user by email
+    user = User.query.filter_by(email='briggs@gmail.com').first()
     if user:
-        # Update user type
+        print(f'Before: {user.name}, user_type: {user.user_type}')
         user.user_type = 'caregiver'
         db.session.commit()
-        print(f'Updated user type to: {user.user_type}')
+        print(f'After: {user.name}, user_type: {user.user_type}')
     else:
         print('User not found') 
