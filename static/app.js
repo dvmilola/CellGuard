@@ -1120,6 +1120,42 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  // Contact Patient Modal
+  const contactModal = document.getElementById('contact-patient-modal');
+  const closeContactModalBtn = document.getElementById('close-contact-modal');
+
+  document.body.addEventListener('click', function(event) {
+    if (event.target.matches('.contact-btn')) {
+      const patientName = event.target.dataset.patientName;
+      const patientEmail = event.target.dataset.patientEmail;
+      const patientPhone = event.target.dataset.patientPhone;
+
+      document.getElementById('contact-modal-title').textContent = `Contact ${patientName}`;
+      document.getElementById('contact-patient-name').textContent = patientName;
+      document.getElementById('contact-patient-email').textContent = patientEmail;
+      document.getElementById('contact-patient-email').href = `mailto:${patientEmail}`;
+      document.getElementById('contact-patient-phone').textContent = patientPhone;
+      document.getElementById('contact-patient-phone').href = `tel:${patientPhone}`;
+
+      document.getElementById('email-patient-link').href = `mailto:${patientEmail}`;
+      document.getElementById('call-patient-link').href = `tel:${patientPhone}`;
+      
+      contactModal.style.display = 'block';
+    }
+  });
+
+  if (closeContactModalBtn) {
+    closeContactModalBtn.onclick = function() {
+      contactModal.style.display = 'none';
+    }
+  }
+
+  window.addEventListener('click', (event) => {
+    if (event.target == contactModal) {
+      contactModal.style.display = 'none';
+    }
+  });
+
   // "Add Patient" Modal functionality
   const addPatientModal = document.getElementById('addPatientModal');
   const openAddPatientBtn = document.getElementById('add-patient-btn-main');

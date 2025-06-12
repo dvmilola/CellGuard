@@ -184,6 +184,20 @@ class CaregiverPatientLink(db.Model):
     # Add unique constraint to prevent duplicate links
     __table_args__ = (db.UniqueConstraint('caregiver_id', 'patient_id', name='_caregiver_patient_uc'),)
 
+class Alert(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    caregiver_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    patient_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    alert_type = db.Column(db.String(50), nullable=False)  # e.g., 'high_risk', 'missed_medication'
+    priority = db.Column(db.String(20), default='medium') # 'high', 'medium', 'low'
+    message = db.Column(db.String(255), nullable=False)
+    is_read = db.Column(db.Boolean, default=False, nullable=False)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    related_id = db.Column(db.Integer) # Optional: ID of the prediction, symptom, etc.
+
+    caregiver = db.relationship('User', foreign_keys=[caregiver_id], backref='alerts')
+    patient = db.relationship('User', foreign_keys=[patient_id], backref='triggered_alerts')
+
 class CaregiverLinkToken(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     token = db.Column(db.String(100), unique=True, nullable=False)

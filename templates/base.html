@@ -109,11 +109,19 @@
                 <div class="footer-section">
                     <h3>Quick Links</h3>
                     <ul class="footer-links">
-                        <li><a href="/">Home</a></li>
-                        <li><a href="/predictions">Crisis Prediction</a></li>
-                        <li><a href="/medication">Medication</a></li>
-                        <li><a href="/symptom-tracker">Symptom Tracker</a></li>
-                        <li><a href="/knowledge-library">Knowledge Library</a></li>
+                        {% if current_user.is_authenticated and current_user.user_type == 'caregiver' %}
+                            <li><a href="/caregiver">Dashboard</a></li>
+                            <li><a href="/caregiver/patients">My Patients</a></li>
+                            <li><a href="/caregiver/alerts">Alerts</a></li>
+                            <li><a href="/caregiver/reports">Reports</a></li>
+                            <li><a href="/caregiver/resources">Resources</a></li>
+                        {% else %}
+                            <li><a href="/">Home</a></li>
+                            <li><a href="/predictions">Crisis Prediction</a></li>
+                            <li><a href="/medication">Medication</a></li>
+                            <li><a href="/symptom-tracker">Symptom Tracker</a></li>
+                            <li><a href="/knowledge-library">Knowledge Library</a></li>
+                        {% endif %}
                     </ul>
                 </div>
                 <div class="footer-section">

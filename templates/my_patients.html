@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}My Patients - CellGuard{% endblock %}
+
+{% block content %}
+<div class="my-patients-page">
+  <div class="page-header">
+    <h1>My Patients</h1>
+    <button class="btn btn-primary" id="add-patient-btn-main"><i class="fas fa-plus"></i> Add New Patient</button>
+  </div>
+  
+  <div class="patient-list-container">
+    {% if patients %}
+      {% for p in patients %}
+        <div class="patient-card">
+          <div class="patient-info">
+            <div class="patient-name">{{ p.patient.name }}</div>
+            <div class="patient-status {% if p.latest_prediction and p.latest_prediction.crisis_predicted %}status-danger{% elif p.latest_prediction and p.latest_prediction.crisis_probability > 0.7 %}status-warning{% else %}status-normal{% endif %}">
+              {% if p.latest_prediction %}
+                {% if p.latest_prediction.crisis_predicted %}High Risk
+                {% elif p.latest_prediction.crisis_probability > 0.7 %}Moderate Risk
+                {% else %}Low Risk
+                {% endif %}
+              {% else %}
+                No Data
+              {% endif %}
+            </div>
+          </div>
+          <div class="patient-vitals">
+            <div class="vital-stat">
+              <i class="fas fa-thermometer-half"></i>
+              {{ '%.1f'|format(p.latest_reading.temperature) if p.latest_reading else '--' }}°C
+            </div>
+            <div class="vital-stat">
+              <i class="fas fa-tint"></i>
+              {{ (p.latest_reading.spo2 | round(1)) if p.latest_reading else '--' }}%
+            </div>
+            <div class="vital-stat">
+              <i class="fas fa-hand-holding-medical"></i>
+              {{ (p.latest_reading.gsr | round(2)) if p.latest_reading else '--' }}
+            </div>
+          </div>
+          <div class="patient-contact">
+            <span><i class="fas fa-envelope"></i> {{ p.patient.email }}</span>
+            <span><i class="fas fa-phone"></i> {{ p.patient.phone or 'Not Provided' }}</span>
+          </div>
+          <div class="patient-actions">
+            <button class="btn btn-primary btn-sm view-details-btn" data-patient-id="{{ p.patient.id }}">View Details</button>
+            <button class="btn btn-outline btn-sm contact-btn" data-patient-name="{{ p.patient.name }}" data-patient-email="{{ p.patient.email }}" data-patient-phone="{{ p.patient.phone or 'N/A' }}">Contact</button>
+          </div>
+        </div>
+      {% endfor %}
+    {% else %}
+      <div class="no-patients-card">
+        <h3>No Patients Linked</h3>
+        <p>You have not linked to any patients yet. Click the button above to add your first patient.</p>
+      </div>
+    {% endif %}
+  </div>
+
+  <!-- Modals will be inherited from the caregiver dashboard javascript, but we need the HTML structure here too -->
+  <!-- Patient Details Modal -->
+  <div id="patientDetailsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Patient Details</h2>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="vital-signs-chart">
+          <h3>Vital Signs Trend</h3>
+          <canvas id="vitalSignsChart"></canvas>
+          <p class="chart-empty-message" style="display: none; text-align: center; padding: 2rem; color: #888;">No recent vital signs data available to display a chart.</p>
+        </div>
+        <div class="patient-details">
+          <h3>Patient Info</h3>
+        </div>
+        <div class="medication-schedule">
+          <h3>Today's Medication</h3>
+        </div>
+        <div class="recent-symptoms">
+          <h3>Recent Symptoms</h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contact Patient Modal -->
+  <div id="contact-patient-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="contact-modal-title">Contact Patient</h2>
+        <span class="close-btn" id="close-contact-modal">&times;</span>
+      </div>
+      <div class="modal-body">
+        <p><strong>Name:</strong> <span id="contact-patient-name"></span></p>
+        <p><strong>Email:</strong> <a id="contact-patient-email" href="#"></a></p>
+        <p><strong>Phone:</strong> <a id="contact-patient-phone" href="#"></a></p>
+      </div>
+      <div class="modal-footer">
+        <a id="email-patient-link" href="#" class="btn btn-primary"><i class="fas fa-envelope"></i> Send Email</a>
+        <a id="call-patient-link" href="#" class="btn btn-secondary"><i class="fas fa-phone-alt"></i> Call Now</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Patient Modal -->
+  <div id="addPatientModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add or Link Patient</h2>
+        <span class="close" id="closeAddPatientModal">&times;</span>
+      </div>
+      <div class="modal-body">
+        <form id="addPatientForm">
+          <div class="form-group">
+            <label>Link Method</label>
+            <div style="display: flex; gap: 1.5rem; margin-bottom: 1rem;">
+              <label><input type="radio" name="linkMethod" value="email" checked> By Email</label>
+              <label><input type="radio" name="linkMethod" value="otp"> By OTP</label>
+            </div>
+          </div>
+          <div class="form-group" id="emailField">
+            <label for="patientEmail">Patient's Email</label>
+            <input type="email" id="patientEmail">
+          </div>
+          <div class="form-group" id="otpField" style="display: none;">
+            <label for="patientOTP">Patient's OTP</label>
+            <input type="text" id="patientOTP" maxlength="8" pattern="[A-Za-z0-9]{6,8}">
+            <small>Ask the patient to generate an OTP from their dashboard.</small>
+          </div>
+          <div class="form-group">
+            <label for="relationship">Relationship</label>
+            <select id="relationship" required>
+              <option value="parent">Parent</option>
+              <option value="spouse">Spouse</option>
+              <option value="sibling">Sibling</option>
+              <option value="child">Child</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary">Add/Link Patient</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .my-patients-page {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem 0;
+  }
+  .page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+  }
+  .page-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1a1a2e;
+  }
+  .patient-list-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+  /* Re-using patient-card styles from caregiver.html for consistency */
+  .patient-card {
+    background: #fff;
+    border: 1px solid #eef2f7;
+    border-radius: 12px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    transition: box-shadow 0.2s, border-color 0.2s;
+    box-shadow: 0 4px 24px rgba(44, 62, 80, 0.07);
+  }
+  .patient-card:hover {
+    box-shadow: 0 8px 32px rgba(44, 62, 80, 0.13);
+    border-color: #d8e2f0;
+  }
+  .patient-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .patient-name {
+    font-weight: 600;
+    color: #1a1a2e;
+    font-size: 1.2rem;
+  }
+  .patient-status {
+    padding: 0.3rem 1.1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  .status-danger { background-color: #ffe5e5; color: #c53030; }
+  .status-warning { background-color: #fffaf0; color: #dd6b20; }
+  .status-normal { background-color: #e6fffa; color: #2c7a7b; }
+  .patient-vitals {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    color: #5a7896;
+    font-size: 0.95rem;
+  }
+  .patient-contact {
+    display: flex;
+    gap: 1.5rem;
+    color: #5a7896;
+    font-size: 0.9rem;
+  }
+  .patient-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    justify-content: flex-end;
+  }
+  .no-patients-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 3rem;
+    text-align: center;
+    color: #5a7896;
+  }
+  .no-patients-card h3 {
+    color: #1a1a2e;
+    margin-bottom: 1rem;
+  }
+</style>
+{% endblock %} 

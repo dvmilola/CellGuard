@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts - CellGuard{% endblock %}
+
+{% block content %}
+<div class="alerts-page">
+  <div class="page-header">
+    <h1>Alerts</h1>
+  </div>
+  
+  <div class="alerts-container">
+    <div class="alert-section">
+      <h2>New Alerts</h2>
+      <div class="alert-list" id="new-alerts-list">
+        {% if new_alerts %}
+          {% for alert in new_alerts %}
+            <div class="alert-item alert-{{ alert.priority }}" data-alert-id="{{ alert.id }}">
+              <div class="alert-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+              </div>
+              <div class="alert-content">
+                <p class="alert-message">{{ alert.message }}</p>
+                <span class="alert-timestamp">{{ alert.timestamp.strftime('%b %d, %Y at %I:%M %p') }}</span>
+              </div>
+              <div class="alert-actions">
+                <button class="btn btn-sm btn-outline mark-as-read">Mark as Read</button>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="no-alerts-card">
+            <p>You have no new alerts.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="alert-section">
+      <h2>Cleared Alerts</h2>
+      <div class="alert-list">
+        {% if cleared_alerts %}
+          {% for alert in cleared_alerts %}
+            <div class="alert-item alert-cleared">
+              <div class="alert-icon">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <div class="alert-content">
+                <p class="alert-message">{{ alert.message }}</p>
+                <span class="alert-timestamp">Cleared on: {{ alert.timestamp.strftime('%b %d, %Y') }}</span>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="no-alerts-card">
+            <p>No alerts have been cleared yet.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.body.addEventListener('click', async function(event) {
+        if (event.target.matches('.mark-as-read')) {
+            const alertItem = event.target.closest('.alert-item');
+            const alertId = alertItem.dataset.alertId;
+            
+            try {
+                const response = await fetch(`/api/alerts/${alertId}/mark-read`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    // Animate and remove the alert from the "New" list
+                    alertItem.style.transition = 'opacity 0.5s ease';
+                    alertItem.style.opacity = '0';
+                    setTimeout(() => {
+                        alertItem.remove();
+                        // Optionally, you could dynamically add it to the "Cleared" list
+                        // For simplicity, we just remove it here. A page refresh will show it in cleared.
+                    }, 500);
+                } else {
+                    throw new Error(result.message || 'Failed to mark alert as read.');
+                }
+            } catch (error) {
+                console.error('Error marking alert as read:', error);
+                alert(error.message);
+            }
+        }
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .alerts-page {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem 0;
+  }
+  .page-header {
+    margin-bottom: 2rem;
+  }
+  .page-header h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #1a1a2e;
+  }
+  .alerts-container {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+  .alert-section h2 {
+    font-size: 1.8rem;
+    color: #1a1a2e;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #eef2f7;
+    padding-bottom: 0.5rem;
+  }
+  .alert-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .alert-item {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.2rem;
+    border-radius: 8px;
+    border-left-width: 5px;
+    border-left-style: solid;
+    box-shadow: 0 2px 8px rgba(44, 62, 80, 0.07);
+  }
+  .alert-high { background-color: #fff4f4; border-left-color: #e53e3e; }
+  .alert-high .alert-icon { color: #e53e3e; }
+  .alert-medium { background-color: #fffaf0; border-left-color: #ed8936; }
+  .alert-medium .alert-icon { color: #ed8936; }
+  .alert-cleared { background-color: #f7fafc; border-left-color: #a0aec0; }
+  .alert-cleared .alert-icon { color: #a0aec0; }
+
+  .alert-icon { font-size: 1.6rem; }
+  .alert-message { font-weight: 500; color: #2d3748; margin: 0; }
+  .alert-timestamp { font-size: 0.85rem; color: #718096; }
+  .alert-actions { justify-self: end; }
+  .no-alerts-card {
+    background: #fff;
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    color: #5a7896;
+    border: 1px dashed #eef2f7;
+  }
+</style>
+{% endblock %} 

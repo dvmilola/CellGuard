@@ -62,8 +62,21 @@
           <div class="card">
             <h3>Recent Alerts</h3>
             <div class="alert-list">
-              {# Placeholder for alerts #}
-              <p style="text-align: center; color: #888; padding: 2rem 0;">No recent alerts.</p>
+              {% if alerts %}
+                {% for alert in alerts %}
+                  <div class="alert-item alert-{{ alert.priority }}">
+                    <div class="alert-icon">
+                      <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="alert-content">
+                      <p class="alert-message">{{ alert.message }}</p>
+                      <span class="alert-timestamp">{{ alert.timestamp.strftime('%b %d, %H:%M') }}</span>
+                    </div>
+                  </div>
+                {% endfor %}
+              {% else %}
+                <p style="text-align: center; color: #888; padding: 2rem 0;">No recent alerts.</p>
+              {% endif %}
             </div>
           </div>
         </div>
@@ -439,6 +452,55 @@
   }
   .patient-card .btn-outline:hover {
     background-color: #f0f4f9;
+  }
+
+  .alert-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .alert-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border-radius: 8px;
+    border-left-width: 5px;
+    border-left-style: solid;
+  }
+
+  .alert-high {
+    background-color: #fff4f4;
+    border-left-color: #e53e3e;
+  }
+
+  .alert-high .alert-icon {
+    color: #e53e3e;
+  }
+
+  .alert-medium {
+    background-color: #fffaf0;
+    border-left-color: #ed8936;
+  }
+  
+  .alert-medium .alert-icon {
+    color: #ed8936;
+  }
+
+  .alert-icon {
+    font-size: 1.5rem;
+  }
+  
+  .alert-message {
+    font-weight: 500;
+    color: #1a1a2e;
+    margin: 0;
+  }
+
+  .alert-timestamp {
+    font-size: 0.8rem;
+    color: #718096;
   }
 </style>
 {% endblock %}

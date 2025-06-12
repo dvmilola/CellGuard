@@ -693,4 +693,69 @@ select:focus {
   .mobile-menu-btn {
     font-size: 1.3rem;
   }
+}
+
+.auth-features h3 {
+  color: #1a1a2e;
+  margin-bottom: 2rem;
+}
+
+/* Footer Styles */
+.footer {
+  background-color: #1a1a2e;
+  color: #f0f4f9;
+  padding: 3rem 0;
+  margin-top: 4rem;
+}
+
+.footer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.footer-section h3 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin-bottom: 1rem;
+}
+
+.footer-section p {
+  color: #cbd6e2;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.footer-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.footer-links li {
+  margin-bottom: 0.75rem;
+}
+
+.footer-links a {
+  color: #cbd6e2;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.footer-links a:hover {
+  color: #ffffff;
+}
+
+.footer-links i {
+  margin-right: 0.5rem;
+}
+
+.footer-bottom {
+  text-align: center;
+  padding-top: 2rem;
+  border-top: 1px solid #3a3a5e;
+  font-size: 0.9rem;
+  color: #a0b3ce;
 } 

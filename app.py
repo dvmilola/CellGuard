@@ -26,7 +26,7 @@ from models import (
     db, User, SensorReading, Prediction, EmergencyContact, 
     HealthcareProvider, Medication, MedicationSchedule, 
     MedicationRefill, Symptom, CrisisPrediction, PatientOTP,
-    CaregiverPatientLink, CaregiverLinkToken
+    CaregiverPatientLink, CaregiverLinkToken, Alert
 )
 from flask_socketio import SocketIO, emit
 import threading
@@ -154,6 +154,23 @@ def receive_sensor_readings():
         'temperature': data['temperature'],
         'spo2': data['spo2']
     })
+
+    # If prediction is high risk, generate alerts for caregivers
+    if data['probability'] > 0.8:
+        patient = User.query.get(user_id)
+        if patient:
+            linked_caregivers = CaregiverPatientLink.query.filter_by(patient_id=user_id).all()
+            for link in linked_caregivers:
+                alert = Alert(
+                    caregiver_id=link.caregiver_id,
+                    patient_id=user_id,
+                    alert_type='high_risk',
+                    priority='high',
+                    message=f"{patient.name} has a high crisis risk ({data['probability'] * 100:.0f}% probability).",
+                    related_id=prediction.id
+                )
+                db.session.add(alert)
+            db.session.commit()
 
     return jsonify({
         'status': 'success',
@@ -1187,7 +1204,90 @@ def caregiver_dashboard():
             'latest_prediction': latest_prediction,
         })
 
-    return render_template('caregiver.html', patients=patients_data)
+    # Fetch recent alerts for the caregiver
+    recent_alerts = (Alert.query
+                     .filter_by(caregiver_id=current_user.id, is_read=False)
+                     .order_by(Alert.timestamp.desc())
+                     .limit(10)
+                     .all())
+
+    return render_template('caregiver.html', patients=patients_data, alerts=recent_alerts)
+
+@app.route('/caregiver/patients')
+@login_required
+def caregiver_patients():
+    """
+    Displays a full list of patients managed by the caregiver.
+    """
+    if current_user.user_type != 'caregiver':
+        flash('You are not authorized to access this page.', 'danger')
+        return redirect(url_for('home'))
+
+    caregiver_id = current_user.id
+    linked_patients = (db.session.query(User, CaregiverPatientLink)
+                       .join(CaregiverPatientLink, User.id == CaregiverPatientLink.patient_id)
+                       .filter(CaregiverPatientLink.caregiver_id == caregiver_id)
+                       .all())
+
+    patients_data = []
+    for patient, link in linked_patients:
+        latest_reading = (SensorReading.query
+                          .filter_by(user_id=patient.id)
+                          .order_by(SensorReading.timestamp.desc())
+                          .first())
+        latest_prediction = (CrisisPrediction.query
+                             .filter_by(user_id=patient.id)
+                             .order_by(CrisisPrediction.timestamp.desc())
+                             .first())
+        patients_data.append({
+            'patient': patient,
+            'link': link,
+            'latest_reading': latest_reading,
+            'latest_prediction': latest_prediction,
+        })
+    
+    return render_template('my_patients.html', patients=patients_data)
+
+@app.route('/caregiver/alerts')
+@login_required
+def caregiver_alerts():
+    """
+    Displays a full list of alerts for the caregiver.
+    """
+    if current_user.user_type != 'caregiver':
+        flash('You are not authorized to access this page.', 'danger')
+        return redirect(url_for('home'))
+
+    # Fetch all alerts for the caregiver, separating them into new and read
+    new_alerts = (Alert.query
+                  .filter_by(caregiver_id=current_user.id, is_read=False)
+                  .order_by(Alert.timestamp.desc())
+                  .all())
+    
+    cleared_alerts = (Alert.query
+                      .filter_by(caregiver_id=current_user.id, is_read=True)
+                      .order_by(Alert.timestamp.desc())
+                      .limit(50)  # Limit to the last 50 cleared alerts for performance
+                      .all())
+
+    return render_template('alerts.html', new_alerts=new_alerts, cleared_alerts=cleared_alerts)
+
+@app.route('/api/alerts/<int:alert_id>/mark-read', methods=['POST'])
+@login_required
+def mark_alert_as_read(alert_id):
+    """
+    Marks a specific alert as read.
+    """
+    alert = Alert.query.get_or_404(alert_id)
+
+    # Security check: Ensure the alert belongs to the current caregiver
+    if alert.caregiver_id != current_user.id:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 403
+    
+    alert.is_read = True
+    db.session.commit()
+    
+    return jsonify({'success': True, 'message': 'Alert marked as read.'})
 
 @app.route('/api/patient/<int:patient_id>/details', methods=['GET'])
 @login_required
