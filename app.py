@@ -2,6 +2,10 @@ import logging
 import requests
 import click
 from flask.cli import with_appcontext
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -53,6 +57,7 @@ app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
 app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() in ['true', 'on', '1']
+app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'False').lower() in ['true', 'on', '1']
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
@@ -1280,7 +1285,7 @@ def generate_otp():
     db.session.commit()
     return jsonify({'otp': code, 'expires_at': expires_at.isoformat()})
 
-def send_confirmation_email(patient_email, token, caregiver):
+def send_confirmation_email(patient_email, token, caregiver, patient_name):
     """
     Sends a confirmation email to the patient using Flask-Mail.
     """
@@ -1300,6 +1305,7 @@ def send_confirmation_email(patient_email, token, caregiver):
     html_body = render_template(
         'emails/caregiver_request.html', 
         caregiver_name=caregiver.name,
+        patient_name=patient_name,
         confirmation_link=confirmation_link
     )
     
@@ -1361,7 +1367,7 @@ def link_patient():
         db.session.commit()
 
         # Send the confirmation email
-        email_sent = send_confirmation_email(email, token, current_user)
+        email_sent = send_confirmation_email(email, token, current_user, patient_to_link.name)
 
         if email_sent:
             return jsonify({

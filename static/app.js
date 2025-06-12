@@ -959,6 +959,167 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   // --- End Symptom Tracker Page Specific Functions ---
 
+  // Caregiver dashboard functionality
+  const patientDetailsModal = document.getElementById('patientDetailsModal');
+  const closeModalBtn = patientDetailsModal ? patientDetailsModal.querySelector('.close') : null;
+  let vitalSignsChart = null;
+
+  function formatTime(isoString) {
+    const date = new Date(isoString);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function updateChart(canvasId, readings) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    
+    if (vitalSignsChart) {
+      vitalSignsChart.destroy();
+    }
+
+    if (!readings || readings.length === 0) {
+      document.querySelector('.chart-empty-message').style.display = 'block';
+      document.getElementById(canvasId).style.display = 'none';
+      return;
+    }
+    
+    document.querySelector('.chart-empty-message').style.display = 'none';
+    document.getElementById(canvasId).style.display = 'block';
+
+    vitalSignsChart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: readings.map(r => formatTime(r.timestamp)),
+        datasets: [
+          {
+            label: 'Temperature (°C)',
+            data: readings.map(r => r.temperature),
+            borderColor: '#ff6384',
+            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+            yAxisID: 'y',
+          },
+          {
+            label: 'SpO2 (%)',
+            data: readings.map(r => r.spo2),
+            borderColor: '#36a2eb',
+            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+            yAxisID: 'y1',
+          },
+          {
+            label: 'GSR',
+            data: readings.map(r => r.gsr),
+            borderColor: '#4bc0c0',
+            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+            yAxisID: 'y2',
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            type: 'linear',
+            display: true,
+            position: 'left',
+            title: { display: true, text: 'Temp (°C)' }
+          },
+          y1: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            title: { display: true, text: 'SpO2 (%)' },
+            grid: { drawOnChartArea: false }
+          },
+          y2: {
+            type: 'linear',
+            display: true,
+            position: 'right',
+            title: { display: true, text: 'GSR' },
+            grid: { drawOnChartArea: false },
+            ticks: { display: false }
+          }
+        }
+      }
+    });
+  }
+
+  async function openPatientDetailsModal(patientId) {
+    try {
+      const response = await fetch(`/api/patient/${patientId}/details`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch patient details');
+      }
+      const data = await response.json();
+
+      // Populate patient info
+      const patientInfoDiv = patientDetailsModal.querySelector('.patient-details');
+      patientInfoDiv.innerHTML = `
+        <h3>Patient Info</h3>
+        <p><strong>Name:</strong> ${data.patient.name}</p>
+        <p><strong>Email:</strong> ${data.patient.email}</p>
+        <p><strong>Age:</strong> ${data.patient.age || 'N/A'}</p>
+        <p><strong>Gender:</strong> ${data.patient.gender || 'N/A'}</p>
+      `;
+
+      // Populate medication schedule
+      const medicationDiv = patientDetailsModal.querySelector('.medication-schedule');
+      let medicationHtml = '<h3>Today\'s Medication</h3>';
+      if (data.medication_schedule.length > 0) {
+        medicationHtml += '<ul>';
+        data.medication_schedule.forEach(med => {
+          medicationHtml += `<li>${med.medication_name} (${med.dosage}) at ${med.time} - ${med.is_taken ? 'Taken' : 'Pending'}</li>`;
+        });
+        medicationHtml += '</ul>';
+      } else {
+        medicationHtml += '<p>No medications scheduled for today.</p>';
+      }
+      medicationDiv.innerHTML = medicationHtml;
+
+      // Populate recent symptoms
+      const symptomsDiv = patientDetailsModal.querySelector('.recent-symptoms');
+      let symptomsHtml = '<h3>Recent Symptoms</h3>';
+      if (data.recent_symptoms.length > 0) {
+        symptomsHtml += '<ul>';
+        data.recent_symptoms.forEach(symptom => {
+          symptomsHtml += `<li>${symptom.date}: Pain Level ${symptom.pain_level}, Symptoms: ${symptom.symptoms}</li>`;
+        });
+        symptomsHtml += '</ul>';
+      } else {
+        symptomsHtml += '<p>No recent symptoms logged.</p>';
+      }
+      symptomsDiv.innerHTML = symptomsHtml;
+
+      // Update chart
+      updateChart('vitalSignsChart', data.sensor_readings);
+
+      patientDetailsModal.style.display = 'block';
+    } catch (error) {
+      console.error('Error opening patient details modal:', error);
+      alert('Could not load patient details. Please try again.');
+    }
+  }
+
+  // Event listener for all "View Details" buttons
+  document.body.addEventListener('click', function(event) {
+    if (event.target.matches('.view-details-btn')) {
+      const patientId = event.target.dataset.patientId;
+      openPatientDetailsModal(patientId);
+    }
+  });
+
+  // Close modal
+  if (closeModalBtn) {
+    closeModalBtn.onclick = function() {
+      patientDetailsModal.style.display = "none";
+    }
+  }
+
+  window.onclick = function(event) {
+    if (event.target == patientDetailsModal) {
+      patientDetailsModal.style.display = "none";
+    }
+  }
+
   // "Add Patient" Modal functionality
   const addPatientModal = document.getElementById('addPatientModal');
   const openAddPatientBtn = document.getElementById('add-patient-btn-main');

@@ -347,93 +347,98 @@
     align-items: center;
   }
   .modal-content {
-    background: #fff;
-    margin: 5% auto;
-    border-radius: 14px;
-    box-shadow: 0 8px 32px rgba(44, 62, 80, 0.18);
-    position: relative;
-    max-width: 540px;
-    width: 95%;
-    overflow: hidden;
+    background-color: #fefefe;
+    margin: 10% auto;
+    padding: 0;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 700px;
+    border-radius: 12px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    animation-name: animatetop;
+    animation-duration: 0.4s
+  }
+  @keyframes animatetop {
+    from {top: -300px; opacity: 0}
+    to {top: 0; opacity: 1}
   }
   .modal-header {
+    padding: 1rem 1.5rem;
+    background-color: #4a90e2;
+    color: white;
+    border-bottom: 1px solid #eee;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1.2rem 1.8rem;
-    background-color: #f7f9fb;
-    border-bottom: 1px solid #eef2f7;
   }
   .modal-header h2 {
-    font-size: 1.3rem;
-    font-weight: 600;
-    color: #1a1a2e;
+    margin: 0;
+    font-size: 1.5rem;
   }
-  .modal-header .close, .modal-header .close-btn {
-    font-size: 1.8rem;
-    color: #888;
+  .close {
+    color: #fff;
+    font-size: 28px;
+    font-weight: bold;
+    opacity: 0.8;
+  }
+  .close:hover,
+  .close:focus {
+    color: #eee;
+    text-decoration: none;
     cursor: pointer;
-    font-weight: 400;
-    border: none;
-    background: none;
-    outline: none;
+    opacity: 1;
   }
   .modal-body {
-    padding: 1.8rem;
-    font-size: 1rem;
-    color: #222;
-  }
-  .modal-footer {
-    padding: 1rem 1.8rem;
-    background-color: #f7f9fb;
-    border-top: 1px solid #eef2f7;
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.8rem;
-  }
-  
-  #patientDetailsModal .modal-content {
-    max-width: 800px;
-  }
-  #patientDetailsModal .modal-body {
-    padding: 2rem;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2rem;
-    background-color: #fdfdff;
-  }
-  #patientDetailsModal .vital-signs-chart, #patientDetailsModal .patient-details, #patientDetailsModal .medication-schedule, #patientDetailsModal .recent-symptoms {
-    grid-column: 1 / -1;
-    background: #fff;
     padding: 1.5rem;
-    border-radius: 12px;
-    border: 1px solid #eef2f7;
+    display: grid;
+    grid-template-areas:
+      "chart chart"
+      "info meds"
+      "info symptoms";
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
   }
-  @media(min-width: 600px) {
-    #patientDetailsModal .patient-details { grid-column: 1 / 2; }
-    #patientDetailsModal .medication-schedule { grid-column: 2 / 3; }
-  }
-  #patientDetailsModal h3 {
+  .vital-signs-chart { grid-area: chart; }
+  .patient-details { grid-area: info; }
+  .medication-schedule { grid-area: meds; }
+  .recent-symptoms { grid-area: symptoms; }
+  .modal-body h3 {
     font-size: 1.2rem;
-    font-weight: 600;
     color: #1a1a2e;
-    margin-top: 0;
     margin-bottom: 1rem;
+    border-bottom: 2px solid #eef2f7;
     padding-bottom: 0.5rem;
-    border-bottom: 1px solid #eef2f7;
   }
-  #patientDetailsModal ul {
-    list-style: none;
+  .patient-details p,
+  .medication-schedule li,
+  .recent-symptoms li {
+    font-size: 1rem;
+    color: #333;
+  }
+  .medication-schedule ul,
+  .recent-symptoms ul {
+    list-style-type: none;
     padding-left: 0;
-    margin-bottom: 0;
   }
-  #patientDetailsModal li {
-    font-size: 0.95rem;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid #f0f0f0;
+  .medication-schedule li,
+  .recent-symptoms li {
+    background: #f7f9fb;
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-bottom: 0.5rem;
+    border-left: 4px solid #4a90e2;
   }
-  #patientDetailsModal li:last-child {
-    border-bottom: none;
+  .patient-card .btn-primary {
+    background-color: #4a90e2;
+  }
+  .patient-card .btn-outline {
+    border-color: #cbd6e2;
+    color: #5a7896;
+  }
+  .patient-card .btn-outline:hover {
+    background-color: #f0f4f9;
   }
 </style>
 {% endblock %}
