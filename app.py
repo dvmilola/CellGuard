@@ -26,7 +26,7 @@ from models import (
     db, User, SensorReading, Prediction, EmergencyContact, 
     HealthcareProvider, Medication, MedicationSchedule, 
     MedicationRefill, Symptom, CrisisPrediction, PatientOTP,
-    CaregiverPatientLink, CaregiverLinkToken, Alert
+    CaregiverPatientLink, CaregiverLinkToken, Alert, Resource
 )
 from flask_socketio import SocketIO, emit
 import threading
@@ -214,6 +214,40 @@ with app.app_context():
     # Count existing records
     prediction_count = Prediction.query.count()
     print(f"Existing prediction records: {prediction_count}\n")
+
+    # One-time population of the Resource table
+    if Resource.query.count() == 0:
+        print("[INFO] Populating database with initial resources...")
+        resources_to_add = [
+            Resource(title="Understanding Sickle Cell Pain", 
+                     description="An overview of what causes pain in sickle cell disease and how it manifests.",
+                     link="https://www.cdc.gov/ncbddd/sicklecell/pain.html",
+                     category="Pain Management",
+                     resource_type="Article"),
+            Resource(title="Managing Pain Crises at Home",
+                     description="Tips and strategies for managing a pain crisis outside of the hospital.",
+                     link="https://www.youtube.com/watch?v=U84t_Yf4a4g",
+                     category="Pain Management",
+                     resource_type="Video"),
+            Resource(title="Nutrition for Sickle Cell Warriors",
+                     description="Learn about the best foods and hydration strategies to support health with SCD.",
+                     link="https://sicklecellanemianews.com/nutrition-and-sickle-cell-disease/",
+                     category="Nutrition",
+                     resource_type="Article"),
+            Resource(title="Mental Health and SCD",
+                     description="Coping strategies and mental wellness resources for individuals and caregivers.",
+                     link="https://www.sicklecelldisease.org/mental-health-and-sickle-cell-disease/",
+                     category="Mental Health",
+                     resource_type="Website"),
+            Resource(title="Explaining SCD to Children",
+                     description="A guide for parents and caregivers on how to talk to children about their condition.",
+                     link="https://www.stjude.org/treatment/disease/sickle-cell-disease/living-with-sickle-cell/for-parents-caregivers/explaining-to-your-child.html",
+                     category="For Caregivers",
+                     resource_type="Guide"),
+        ]
+        db.session.bulk_save_objects(resources_to_add)
+        db.session.commit()
+        print("[INFO] Initial resources added to the database.")
 
 # Add debug logging for all requests
 @app.before_request
@@ -1231,6 +1265,27 @@ def caregiver_reports():
                        .all())
     
     return render_template('reports.html', patients=linked_patients)
+
+@app.route('/caregiver/resources')
+@login_required
+def caregiver_resources():
+    """
+    Displays educational resources for caregivers, grouped by category.
+    """
+    if current_user.user_type != 'caregiver':
+        flash('You are not authorized to access this page.', 'danger')
+        return redirect(url_for('home'))
+
+    resources = Resource.query.order_by(Resource.category, Resource.title).all()
+    
+    # Group resources by category
+    resources_by_category = {}
+    for resource in resources:
+        if resource.category not in resources_by_category:
+            resources_by_category[resource.category] = []
+        resources_by_category[resource.category].append(resource)
+        
+    return render_template('resources.html', resources_by_category=resources_by_category)
 
 @app.route('/api/caregiver/generate-report', methods=['POST'])
 @login_required

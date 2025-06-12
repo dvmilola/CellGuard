@@ -195,8 +195,8 @@ class Alert(db.Model):
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
     related_id = db.Column(db.Integer) # Optional: ID of the prediction, symptom, etc.
 
-    caregiver = db.relationship('User', foreign_keys=[caregiver_id], backref='alerts')
-    patient = db.relationship('User', foreign_keys=[patient_id], backref='triggered_alerts')
+    caregiver = db.relationship('User', foreign_keys=[caregiver_id])
+    patient = db.relationship('User', foreign_keys=[patient_id])
 
 class CaregiverLinkToken(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -218,3 +218,14 @@ class PatientOTP(db.Model):
     used = db.Column(db.Boolean, default=False)
     
     patient = db.relationship('User', backref=db.backref('otps', lazy=True)) 
+
+class Resource(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=False)
+    link = db.Column(db.String(500), nullable=False)
+    category = db.Column(db.String(50), nullable=False) # e.g., 'Pain Management', 'Nutrition', 'Mental Health'
+    resource_type = db.Column(db.String(50)) # e.g., 'Article', 'Video', 'Website'
+    
+    def __repr__(self):
+        return f'<Resource {self.title}>'

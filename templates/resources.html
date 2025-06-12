@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Resources - CellGuard{% endblock %}
+
+{% block content %}
+<div class="resources-page">
+    <div class="page-header">
+        <h1>Resource Library</h1>
+        <p>A curated list of articles, videos, and guides to help you on your caregiving journey.</p>
+    </div>
+
+    {% if resources_by_category %}
+        {% for category, resources in resources_by_category.items() %}
+        <div class="category-section">
+            <h2 class="category-title">{{ category }}</h2>
+            <div class="resources-grid">
+                {% for resource in resources %}
+                <div class="resource-card">
+                    <div class="card-body">
+                        <div class="resource-type-badge">{{ resource.resource_type }}</div>
+                        <h3 class="card-title">{{ resource.title }}</h3>
+                        <p class="card-text">{{ resource.description }}</p>
+                    </div>
+                    <div class="card-footer">
+                        <a href="{{ resource.link }}" target="_blank" class="btn btn-primary btn-sm">
+                            Open Resource <i class="fas fa-external-link-alt"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+    <div class="no-resources-card">
+        <p>There are currently no resources available. Please check back later.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .resources-page {
+        max-width: 1200px;
+        margin: 2rem auto;
+    }
+    .page-header h1 {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 700;
+        color: #1a1a2e;
+    }
+    .page-header p {
+        font-size: 1.1rem;
+        color: #5a7896;
+    }
+    .category-section {
+        margin-top: 3rem;
+    }
+    .category-title {
+        font-family: 'Poppins', sans-serif;
+        font-size: 1.8rem;
+        color: #1a1a2e;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid #eef2f7;
+        padding-bottom: 0.5rem;
+    }
+    .resources-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+    }
+    .resource-card {
+        background-color: #fff;
+        border: 1px solid #eef2f7;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        transition: transform 0.2s, box-shadow 0.2s;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .resource-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    }
+    .card-body {
+        padding: 1.5rem;
+    }
+    .resource-type-badge {
+        display: inline-block;
+        padding: 0.3rem 0.8rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+        background-color: #e6f7ff;
+        color: #1890ff;
+        margin-bottom: 1rem;
+    }
+    .card-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: #1a1a2e;
+        margin-bottom: 0.75rem;
+    }
+    .card-text {
+        color: #5a7896;
+        line-height: 1.6;
+    }
+    .card-footer {
+        background-color: #f7f9fc;
+        padding: 1rem 1.5rem;
+        border-top: 1px solid #eef2f7;
+        border-bottom-left-radius: 12px;
+        border-bottom-right-radius: 12px;
+        text-align: right;
+    }
+</style>
+{% endblock %} 
