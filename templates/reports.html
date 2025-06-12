@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+
+{% block title %}Patient Reports - CellGuard{% endblock %}
+
+{% block content %}
+<div class="reports-page">
+    <div class="page-header">
+        <h1>Generate Patient Report</h1>
+        <p>Select a patient and a date range to generate a comprehensive health report.</p>
+    </div>
+
+    <div class="report-form-container card">
+        <form id="report-generator-form">
+            <div class="row">
+                <div class="col-md-5">
+                    <label for="patient-select" class="form-label">Select Patient</label>
+                    <select id="patient-select" class="form-select" required>
+                        <option value="" disabled selected>-- Choose a patient --</option>
+                        {% for patient in patients %}
+                        <option value="{{ patient.id }}">{{ patient.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="start-date" class="form-label">Start Date</label>
+                    <input type="date" id="start-date" class="form-control" required>
+                </div>
+                <div class="col-md-3">
+                    <label for="end-date" class="form-label">End Date</label>
+                    <input type="date" id="end-date" class="form-control" required>
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Go</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div id="report-output-container" class="mt-4" style="display: none;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 id="report-title"></h2>
+            <button class="btn btn-outline-secondary btn-sm" onclick="window.print()">
+                <i class="fas fa-print"></i> Print Report
+            </button>
+        </div>
+        <div id="report-content" class="report-content-grid">
+            <!-- Summary Cards -->
+            <div id="summary-cards" class="summary-grid"></div>
+            
+            <!-- Charts -->
+            <div id="pain-level-chart-container" class="chart-container card"></div>
+            <div id="med-adherence-chart-container" class="chart-container card"></div>
+
+            <!-- Data Tables -->
+            <div id="crisis-alerts-table-container" class="table-container card"></div>
+            <div id="symptom-log-table-container" class="table-container card"></div>
+        </div>
+    </div>
+    
+    <div id="loading-spinner" class="text-center mt-5" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Generating report, please wait...</p>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .reports-page { max-width: 1200px; margin: 2rem auto; }
+    .page-header h1 { font-family: 'Poppins', sans-serif; font-weight: 700; }
+    .report-form-container { padding: 2rem; background-color: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .report-content-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.5rem; }
+    .summary-grid { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
+    .summary-card { background-color: #f8f9fa; text-align: center; padding: 1.5rem; border-radius: 8px; }
+    .summary-card .value { font-size: 2.5rem; font-weight: 700; color: #0d6efd; }
+    .summary-card .label { font-size: 1rem; color: #6c757d; }
+    .chart-container, .table-container { padding: 1.5rem; }
+    .table-container h4 { margin-bottom: 1rem; }
+    
+    @media print {
+        body * { visibility: hidden; }
+        nav, footer, .report-form-container, .btn-outline-secondary { display: none; }
+        #report-output-container, #report-output-container * { visibility: visible; }
+        #report-output-container { position: absolute; left: 0; top: 0; width: 100%; }
+        .report-content-grid { display: block; } /* Simplify grid for printing */
+        .card { box-shadow: none; border: 1px solid #dee2e6; }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('report-generator-form');
+    const outputContainer = document.getElementById('report-output-container');
+    const loadingSpinner = document.getElementById('loading-spinner');
+    let painChart, medChart; // To hold chart instances
+
+    form.addEventListener('submit', async function(event) {
+        event.preventDefault();
+        
+        const patientId = document.getElementById('patient-select').value;
+        const startDate = document.getElementById('start-date').value;
+        const endDate = document.getElementById('end-date').value;
+
+        if (!patientId || !startDate || !endDate) {
+            alert('Please fill out all fields.');
+            return;
+        }
+
+        // Show spinner and hide old report
+        loadingSpinner.style.display = 'block';
+        outputContainer.style.display = 'none';
+
+        try {
+            const response = await fetch('/api/caregiver/generate-report', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patient_id: patientId,
+                    start_date: startDate,
+                    end_date: endDate
+                })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to generate report.');
+            }
+            
+            renderReport(data);
+
+        } catch (error) {
+            console.error('Error generating report:', error);
+            alert(error.message);
+        } finally {
+            loadingSpinner.style.display = 'none';
+        }
+    });
+    
+    function renderReport(data) {
+        // Set title
+        document.getElementById('report-title').textContent = 
+            `Health Report for ${data.patient_info.name}`;
+
+        // Render summary cards
+        const summaryContainer = document.getElementById('summary-cards');
+        summaryContainer.innerHTML = `
+            <div class="summary-card">
+                <div class="value">${data.summary_stats.high_risk_alerts}</div>
+                <div class="label">High-Risk Alerts</div>
+            </div>
+            <div class="summary-card">
+                <div class="value">${data.summary_stats.med_adherence}%</div>
+                <div class="label">Medication Adherence</div>
+            </div>
+            <div class="summary-card">
+                <div class="value">${data.summary_stats.avg_pain_level} / 10</div>
+                <div class="label">Avg. Pain Level</div>
+            </div>
+            <div class="summary-card">
+                <div class="value">${data.summary_stats.total_symptoms_logged}</div>
+                <div class="label">Symptoms Logged</div>
+            </div>
+        `;
+
+        // Render charts
+        renderPainChart(data.charts_data.pain_over_time);
+        renderMedAdherenceChart(data.charts_data.med_adherence);
+        
+        // Render tables
+        renderCrisisAlertsTable(data.detailed_logs.crisis_alerts);
+        renderSymptomLogTable(data.detailed_logs.symptom_logs);
+
+        // Show the report container
+        outputContainer.style.display = 'block';
+    }
+
+    function renderPainChart(chartData) {
+        const container = document.getElementById('pain-level-chart-container');
+        container.innerHTML = '<h4>Pain Level Over Time</h4><canvas id="pain-chart"></canvas>';
+        const ctx = document.getElementById('pain-chart').getContext('2d');
+        if(painChart) painChart.destroy();
+        painChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    label: 'Pain Level',
+                    data: chartData.data,
+                    borderColor: 'rgb(255, 99, 132)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    tension: 0.1,
+                    fill: true,
+                }]
+            },
+            options: { scales: { y: { beginAtZero: true, max: 10 } } }
+        });
+    }
+
+    function renderMedAdherenceChart(chartData) {
+        const container = document.getElementById('med-adherence-chart-container');
+        container.innerHTML = '<h4>Medication Adherence</h4><canvas id="med-chart"></canvas>';
+        const ctx = document.getElementById('med-chart').getContext('2d');
+        if(medChart) medChart.destroy();
+        medChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: chartData.labels,
+                datasets: [{
+                    data: chartData.data,
+                    backgroundColor: ['rgb(75, 192, 192)', 'rgb(255, 205, 86)'],
+                }]
+            }
+        });
+    }
+    
+    function renderCrisisAlertsTable(logData) {
+        const container = document.getElementById('crisis-alerts-table-container');
+        let tableHTML = `<h4>High-Risk Alerts Log</h4>`;
+        if (logData.length === 0) {
+            tableHTML += `<p class="text-muted">No high-risk alerts in this period.</p>`;
+        } else {
+            tableHTML += `<div class="table-responsive"><table class="table table-sm table-striped"><thead><tr><th>Timestamp</th><th>Probability</th></tr></thead><tbody>`;
+            logData.forEach(log => {
+                tableHTML += `<tr><td>${log.timestamp}</td><td>${log.probability}</td></tr>`;
+            });
+            tableHTML += `</tbody></table></div>`;
+        }
+        container.innerHTML = tableHTML;
+    }
+
+    function renderSymptomLogTable(logData) {
+        const container = document.getElementById('symptom-log-table-container');
+        let tableHTML = `<h4>Symptom Log</h4>`;
+        if (logData.length === 0) {
+            tableHTML += `<p class="text-muted">No symptoms logged in this period.</p>`;
+        } else {
+            tableHTML += `<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Date</th><th>Pain</th><th>Symptoms</th><th>Notes</th></tr></thead><tbody>`;
+            logData.forEach(log => {
+                tableHTML += `<tr><td>${log.date}</td><td>${log.pain_level}</td><td>${log.symptoms}</td><td>${log.notes || ''}</td></tr>`;
+            });
+            tableHTML += `</tbody></table></div>`;
+        }
+        container.innerHTML = tableHTML;
+    }
+});
+</script>
+{% endblock %} 

@@ -1213,6 +1213,147 @@ def caregiver_dashboard():
 
     return render_template('caregiver.html', patients=patients_data, alerts=recent_alerts)
 
+@app.route('/caregiver/reports')
+@login_required
+def caregiver_reports():
+    """
+    Renders the main reports page, allowing caregivers to select a patient 
+    and date range to generate a report.
+    """
+    if current_user.user_type != 'caregiver':
+        flash('You are not authorized to access this page.', 'danger')
+        return redirect(url_for('home'))
+
+    # Fetch patients linked to this caregiver to populate the selection dropdown
+    linked_patients = (User.query
+                       .join(CaregiverPatientLink, User.id == CaregiverPatientLink.patient_id)
+                       .filter(CaregiverPatientLink.caregiver_id == current_user.id)
+                       .all())
+    
+    return render_template('reports.html', patients=linked_patients)
+
+@app.route('/api/caregiver/generate-report', methods=['POST'])
+@login_required
+def generate_patient_report():
+    """
+    Generates a health report for a specific patient over a date range.
+    """
+    if current_user.user_type != 'caregiver':
+        return jsonify({'error': 'Unauthorized'}), 403
+
+    data = request.json
+    patient_id = data.get('patient_id')
+    start_date_str = data.get('start_date')
+    end_date_str = data.get('end_date')
+
+    # --- Security & Validation ---
+    # Ensure the caregiver is linked to the patient
+    link = CaregiverPatientLink.query.filter_by(
+        caregiver_id=current_user.id,
+        patient_id=patient_id
+    ).first()
+    if not link:
+        return jsonify({'error': 'You are not linked to this patient.'}), 403
+    
+    # Validate and parse dates
+    try:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+    except (ValueError, TypeError):
+        return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD.'}), 400
+
+    patient = User.query.get_or_404(patient_id)
+
+    # --- Data Fetching ---
+    # 1. Crisis Predictions
+    crisis_predictions = (CrisisPrediction.query
+                          .filter(CrisisPrediction.user_id == patient_id,
+                                  CrisisPrediction.timestamp.between(start_date, end_date + timedelta(days=1)))
+                          .order_by(CrisisPrediction.timestamp.desc())
+                          .all())
+
+    # 2. Medication Adherence
+    med_schedules = (MedicationSchedule.query
+                     .join(Medication)
+                     .filter(Medication.user_id == patient_id,
+                             MedicationSchedule.scheduled_date.between(start_date, end_date))
+                     .all())
+
+    # 3. Symptom Logs
+    symptom_logs = (Symptom.query
+                    .filter(Symptom.user_id == patient_id,
+                            Symptom.date.between(start_date, end_date))
+                    .order_by(Symptom.date.asc())
+                    .all())
+    
+    # --- Data Processing & Analysis ---
+    # Crisis stats
+    high_risk_alerts = [p for p in crisis_predictions if p.crisis_probability > 0.8]
+
+    # Medication stats
+    total_doses = len(med_schedules)
+    taken_doses = sum(1 for s in med_schedules if s.is_taken)
+    adherence_rate = (taken_doses / total_doses * 100) if total_doses > 0 else 100
+
+    # Symptom stats
+    avg_pain_level = 0
+    if symptom_logs:
+        total_pain = sum(s.pain_level for s in symptom_logs if s.pain_level is not None)
+        pain_entries = sum(1 for s in symptom_logs if s.pain_level is not None)
+        avg_pain_level = round(total_pain / pain_entries, 1) if pain_entries > 0 else 0
+
+    all_symptoms = []
+    for log in symptom_logs:
+        try:
+            symptoms = json.loads(log.symptoms)
+            if isinstance(symptoms, list):
+                all_symptoms.extend(symptoms)
+        except (TypeError, json.JSONDecodeError):
+            continue
+    most_common_symptoms = [item[0] for item in Counter(all_symptoms).most_common(3)]
+
+    # --- JSON Response Assembly ---
+    response_data = {
+        'patient_info': {
+            'name': patient.name
+        },
+        'report_period': {
+            'start': start_date.strftime('%B %d, %Y'),
+            'end': end_date.strftime('%B %d, %Y')
+        },
+        'summary_stats': {
+            'high_risk_alerts': len(high_risk_alerts),
+            'med_adherence': round(adherence_rate),
+            'avg_pain_level': avg_pain_level,
+            'total_symptoms_logged': len(all_symptoms)
+        },
+        'charts_data': {
+            'pain_over_time': {
+                'labels': [s.date.strftime('%b %d') for s in symptom_logs],
+                'data': [s.pain_level for s in symptom_logs]
+            },
+            'med_adherence': {
+                'labels': ['Taken', 'Missed'],
+                'data': [taken_doses, total_doses - taken_doses]
+            }
+        },
+        'detailed_logs': {
+            'crisis_alerts': [{
+                'timestamp': p.timestamp.strftime('%Y-%m-%d %H:%M'),
+                'probability': f"{p.crisis_probability * 100:.0f}%",
+                'details': p.recommendations
+            } for p in high_risk_alerts],
+            'symptom_logs': [{
+                'date': s.date.strftime('%Y-%m-%d'),
+                'pain_level': s.pain_level,
+                'symptoms': ", ".join(json.loads(s.symptoms)) if s.symptoms else "N/A",
+                'notes': s.notes
+            } for s in symptom_logs]
+        }
+    }
+
+    return jsonify(response_data)
+
 @app.route('/caregiver/patients')
 @login_required
 def caregiver_patients():
