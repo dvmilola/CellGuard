@@ -29,11 +29,19 @@
           </a>
           
           <div class="nav-links">
+            {% if current_user.is_authenticated and current_user.user_type == 'caregiver' %}
+            <a href="/caregiver" class="nav-link {% if request.path == '/caregiver' %}active{% endif %}">Dashboard</a>
+            <a href="/caregiver/patients" class="nav-link {% if request.path == '/caregiver/patients' %}active{% endif %}">My Patients</a>
+            <a href="/caregiver/alerts" class="nav-link {% if request.path == '/caregiver/alerts' %}active{% endif %}">Alerts</a>
+            <a href="/caregiver/reports" class="nav-link {% if request.path == '/caregiver/reports' %}active{% endif %}">Reports</a>
+            <a href="/caregiver/resources" class="nav-link {% if request.path == '/caregiver/resources' %}active{% endif %}">Resources</a>
+            {% else %}
             <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">Home</a>
             <a href="/predictions" class="nav-link {% if request.path == '/predictions' %}active{% endif %}">Crisis Prediction</a>
             <a href="/medication" class="nav-link {% if request.path == '/medication' %}active{% endif %}">Medication</a>
             <a href="/symptom-tracker" class="nav-link {% if request.path == '/symptom-tracker' %}active{% endif %}">Symptom Tracker</a>
             <a href="/knowledge-library" class="nav-link {% if request.path == '/knowledge-library' %}active{% endif %}">Knowledge Library</a>
+            {% endif %}
           </div>
           
           <div class="auth-buttons">
@@ -102,7 +110,8 @@
                     <h3>Contact</h3>
                     <ul class="footer-links">
                         <li><i class="fas fa-envelope"></i> info@cellguard.com</li>
-                        <li><i class="fas fa-phone"></i> +1 (555) 123-4567</li>
+                        <li><i class="fas fa-phone"></i> +2347054725609</li>
+                        <li><i class="fas fa-map-marker-alt"></i> Nile university of Nigeria</li>
                     </ul>
                 </div>
             </div>
@@ -116,13 +125,23 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Dropdown menu functionality
-        document.addEventListener('click', function(event) {
-            const menu = document.getElementById('userDropdownMenu');
-            if (menu && !event.target.matches('#userDropdown, #userDropdown *')) {
-                if (menu.classList.contains('show')) {
-                    menu.classList.remove('show');
-                }
+        document.addEventListener('DOMContentLoaded', function () {
+            const dropdownToggle = document.getElementById('userDropdown');
+            const dropdownMenu = document.getElementById('userDropdownMenu');
+
+            if (dropdownToggle && dropdownMenu) {
+                dropdownToggle.addEventListener('click', function () {
+                    dropdownMenu.classList.toggle('show');
+                });
             }
+
+            document.addEventListener('click', function(event) {
+                if (dropdownMenu && !event.target.matches('#userDropdown, #userDropdown *')) {
+                    if (dropdownMenu.classList.contains('show')) {
+                        dropdownMenu.classList.remove('show');
+                    }
+                }
+            });
         });
     </script>
 </body>
