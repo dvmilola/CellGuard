@@ -9,42 +9,7 @@
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body>
-  <nav>
-    <div class="container nav-container">
-      <a href="/" class="logo">
-        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
-        CellGuard
-      </a>
-      
-      <div class="nav-links">
-        <a href="/" class="nav-link">Home</a>
-        <a href="/predictions" class="nav-link">Crisis Prediction</a>
-        <a href="/medication" class="nav-link">Medication</a>
-        <a href="/symptom-tracker" class="nav-link">Symptom Tracker</a>
-        <a href="/knowledge-library" class="nav-link active">Knowledge Library</a>
-      </div>
-      
-      <div class="auth-buttons">
-        {% if current_user.is_authenticated %}
-            <div class="dropdown">
-                <button class="btn btn-outline dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
-                    <i class="fas fa-user-circle"></i>
-                    {{ current_user.name }}
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="/profile">Profile</a></li>
-                    <li><a class="dropdown-item" href="/settings">Settings</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="/logout">Logout</a></li>
-                </ul>
-            </div>
-        {% else %}
-            <a href="/login" class="btn btn-outline">Log In</a>
-            <a href="/signup" class="btn btn-primary">Sign Up</a>
-        {% endif %}
-      </div>
-    </div>
-  </nav>
+  {% include 'patient_nav.html' %}
 
   <main class="knowledge-library-page">
     <div class="container">

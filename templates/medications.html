@@ -10,42 +10,7 @@
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body>
-  <nav>
-    <div class="container nav-container">
-      <a href="/" class="logo">
-        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
-        CellGuard
-      </a>
-      
-      <div class="nav-links">
-        <a href="/" class="nav-link">Home</a>
-        <a href="/predictions" class="nav-link">Crisis Prediction</a>
-        <a href="/medication" class="nav-link active">Medication</a>
-        <a href="/symptom-tracker" class="nav-link">Symptom Tracker</a>
-        <a href="/knowledge-library" class="nav-link">Knowledge Library</a>
-      </div>
-      
-      <div class="auth-buttons">
-        {% if current_user.is_authenticated %}
-            <div class="dropdown">
-                <button class="btn btn-outline dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
-                    <i class="fas fa-user-circle"></i>
-                    {{ current_user.name }}
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="/profile">Profile</a></li>
-                    <li><a class="dropdown-item" href="/settings">Settings</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="/logout">Logout</a></li>
-                </ul>
-            </div>
-        {% else %}
-            <a href="/login" class="btn btn-outline">Log In</a>
-            <a href="/signup" class="btn btn-primary">Sign Up</a>
-        {% endif %}
-      </div>
-    </div>
-  </nav>
+  {% include 'patient_nav.html' %}
 
   <main class="medications-page">
     <div class="container">
@@ -916,6 +881,63 @@
     color: #b4b7c9;
     margin: 0;
   }
+
+  /* Dropdown specific styles - ensuring they are present for this page */
+  .nav-container .dropdown {
+    position: relative;
+  }
+
+  .nav-container .dropdown-menu {
+    position: absolute;
+    top: 100%; /* Position below the toggle button */
+    right: 0; /* Align to the right of the toggle button */
+    z-index: 1000; /* Ensure it's above other content */
+    display: none; /* Hidden by default */
+    min-width: 180px; /* Or your preferred width */
+    padding: 0.5rem 0;
+    margin-top: 0.5rem; /* Small margin from the toggle */
+    font-size: 1rem;
+    color: #212529;
+    text-align: left;
+    list-style: none;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid rgba(0,0,0,.15);
+    border-radius: 0.375rem; /* Bootstrap 5 default */
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,.175);
+  }
+
+  .nav-container .dropdown-menu.show {
+    display: block; /* Make it visible when .show class is added */
+  }
+
+  .nav-container .dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 0.5rem 1rem; /* Adjust padding as needed */
+    clear: both;
+    font-weight: 400;
+    color: #212529;
+    text-align: inherit;
+    text-decoration: none; /* Remove underline from links */
+    white-space: nowrap;
+    background-color: transparent;
+    border: 0;
+  }
+
+  .nav-container .dropdown-item:hover,
+  .nav-container .dropdown-item:focus {
+    color: #1e2125;
+    background-color: #e9ecef; /* Hover background */
+  }
+
+  .nav-container .dropdown-divider {
+    height: 0;
+    margin: 0.5rem 0;
+    overflow: hidden;
+    border-top: 1px solid rgba(0,0,0,.15);
+  }
+  /* End of Dropdown specific styles */
 </style>
 
 <script>
@@ -1457,4 +1479,43 @@
         handleDeleteMedication.call(e.target.closest('.delete-medication'));
     }
   });
+
+  function initializeKnowledgeLibraryDropdown() {
+    const dropdownToggle = document.querySelector('#userDropdown'); // More specific for the user dropdown
+    // Ensure we are targeting the correct menu related to this toggle
+    const dropdownMenu = dropdownToggle ? dropdownToggle.closest('.dropdown').querySelector('.dropdown-menu') : null;
+
+    if (dropdownToggle && dropdownMenu) {
+      dropdownToggle.addEventListener('click', function(event) {
+        event.stopPropagation(); // Prevent click from bubbling up to document immediately
+        // Close other dropdowns if any were open (good practice if multiple dropdowns exist)
+        document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+          if (menu !== dropdownMenu) {
+            menu.classList.remove('show');
+          }
+        });
+        dropdownMenu.classList.toggle('show');
+      });
+    }
+  }
+  
+  // General click listener to close dropdowns when clicking outside
+  document.addEventListener('click', function(event) {
+    const openDropdownMenu = document.querySelector('.dropdown-menu.show');
+    if (openDropdownMenu) {
+      const dropdownToggle = openDropdownMenu.closest('.dropdown').querySelector('.dropdown-toggle');
+      if (!dropdownToggle.contains(event.target) && !openDropdownMenu.contains(event.target)) {
+        openDropdownMenu.classList.remove('show');
+      }
+    }
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      initializeKnowledgeLibraryDropdown();
+    });
+  } else {
+    // DOMContentLoaded has already fired
+    initializeKnowledgeLibraryDropdown();
+  }
 </script> 

@@ -11,42 +11,7 @@
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body>
-  <nav>
-    <div class="container nav-container">
-      <a href="/" class="logo">
-        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
-        CellGuard
-      </a>
-      
-      <div class="nav-links">
-        <a href="/" class="nav-link">Home</a>
-        <a href="/predictions" class="nav-link active">Crisis Prediction</a>
-        <a href="/medication" class="nav-link">Medication</a>
-        <a href="/symptom-tracker" class="nav-link">Symptom Tracker</a>
-        <a href="/knowledge-library" class="nav-link">Knowledge Library</a>
-      </div>
-      
-      <div class="auth-buttons">
-                {% if current_user.is_authenticated %}
-                    <div class="dropdown">
-                        <button class="btn btn-outline dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
-                            <i class="fas fa-user-circle"></i>
-                            {{ current_user.first_name }}
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="/profile">Profile</a></li>
-                            <li><a class="dropdown-item" href="/settings">Settings</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="/logout">Logout</a></li>
-                        </ul>
-                    </div>
-                {% else %}
-                    <a href="/login" class="btn btn-outline">Log In</a>
-                    <a href="/signup" class="btn btn-primary">Sign Up</a>
-                {% endif %}
-      </div>
-    </div>
-  </nav>
+  {% include 'patient_nav.html' %}
 
     <div class="predictions-page">
     <div class="container">
@@ -136,277 +101,187 @@
         </div>
         
     <style>
-        /* Navigation Styles */
-        nav {
-            background-color: white;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            padding: 1rem 2rem;
-            position: sticky;
-            top: 0;
-            z-index: 100;
+      /* Dropdown specific styles - ensuring they are present for this page */
+      .nav-container .dropdown {
+        position: relative;
+      }
+
+      .nav-container .dropdown-menu {
+        position: absolute;
+        top: 100%; /* Position below the toggle button */
+        right: 0; /* Align to the right of the toggle button */
+        z-index: 1000; /* Ensure it's above other content */
+        display: none; /* Hidden by default */
+        min-width: 180px; /* Or your preferred width */
+        padding: 0.5rem 0;
+        margin-top: 0.5rem; /* Small margin from the toggle */
+        font-size: 1rem;
+        color: #212529;
+        text-align: left;
+        list-style: none;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid rgba(0,0,0,.15);
+        border-radius: 0.375rem; /* Bootstrap 5 default */
+        box-shadow: 0 0.5rem 1rem rgba(0,0,0,.175);
+      }
+
+      .nav-container .dropdown-menu.show {
+        display: block; /* Make it visible when .show class is added */
+      }
+
+      .nav-container .dropdown-item {
+        display: block;
+        width: 100%;
+        padding: 0.5rem 1rem; /* Adjust padding as needed */
+        clear: both;
+        font-weight: 400;
+        color: #212529;
+        text-align: inherit;
+        text-decoration: none; /* Remove underline from links */
+        white-space: nowrap;
+        background-color: transparent;
+        border: 0;
+      }
+
+      .nav-container .dropdown-item:hover,
+      .nav-container .dropdown-item:focus {
+        color: #1e2125;
+        background-color: #e9ecef; /* Hover background */
+      }
+
+      .nav-container .dropdown-divider {
+        height: 0;
+        margin: 0.5rem 0;
+        overflow: hidden;
+        border-top: 1px solid rgba(0,0,0,.15);
+      }
+      /* End of Dropdown specific styles */
+        .predictions-page {
+            padding: 2rem 0;
         }
 
-        .nav-container {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            font-weight: 700;
-            font-size: 1.5rem;
-            color: var(--primary);
-            text-decoration: none;
-        }
-
-        .logo-icon {
-            margin-right: 0.5rem;
-            font-size: 1.8rem;
-            color: var(--primary);
-        }
-
-        .nav-links {
-            display: flex;
+        .prediction-grid {
+            display: grid;
             gap: 2rem;
         }
 
-        .nav-link {
-            text-decoration: none;
-            color: var(--text-dark);
-            font-weight: 500;
-            transition: color 0.2s;
-            padding: 0.5rem 0;
-            position: relative;
-        }
-
-        .nav-link.active {
-            color: var(--primary);
-        }
-
-        .nav-link.active::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background-color: var(--primary);
-            border-radius: 3px;
-        }
-
-        .nav-link:hover {
-            color: var(--primary);
-        }
-
-        .auth-buttons {
-            display: flex;
-            gap: 1rem;
-        }
-
-        .dropdown {
-            position: relative;
-        }
-
-        .dropdown-toggle {
-            background: none;
-            border: none;
-            color: var(--text-dark);
-            font-weight: 500;
-            padding: 0.5rem 1rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .dropdown-toggle:hover {
-            color: var(--primary);
-        }
-
-        .dropdown-toggle i {
-            font-size: 1.2rem;
-        }
-
-        .dropdown-menu {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            min-width: 200px;
-            background-color: white;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
+        /* Monitoring Section */
+        .monitoring-section {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 2rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            padding: 0.5rem 0;
-            margin-top: 0.5rem;
-            display: none;
         }
 
-        .dropdown-menu.show {
-            display: block;
+        .sensor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
         }
 
-        .dropdown-item {
-            display: block;
-            padding: 0.75rem 1.25rem;
-            color: var(--text-dark);
-            text-decoration: none;
-            transition: all 0.2s ease;
-        }
-
-        .dropdown-item:hover {
-            background-color: var(--primary-light);
-            color: var(--primary);
-        }
-
-        .dropdown-divider {
-            height: 1px;
-            background-color: rgba(0, 0, 0, 0.1);
-            margin: 0.5rem 0;
-        }
-
-        .navbar-toggler {
-            border: none;
-            padding: 0.5rem;
-        }
-
-        .navbar-toggler:focus {
-            box-shadow: none;
-        }
-
-        .navbar-toggler-icon {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='rgba(255, 255, 255, 0.8)' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e");
-        }
-
-  /* Predictions Page Styles */
-  .predictions-page {
-    padding: 2rem 0;
+        .sensor-card {
             background-color: #f8f9fa;
-            min-height: 100vh;
-  }
-
-  .prediction-grid {
-    display: grid;
-    gap: 2rem;
-  }
-
-  /* Monitoring Section */
-  .monitoring-section {
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .sensor-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-top: 1.5rem;
-  }
-
-  .sensor-card {
-    background-color: #f8f9fa;
-    border-radius: 8px;
-    padding: 1.5rem;
-    text-align: center;
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
             transition: transform 0.3s ease;
         }
 
         .sensor-card:hover {
             transform: translateY(-5px);
-  }
+        }
 
-  .sensor-header {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    margin-bottom: 1rem;
-  }
+        .sensor-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
 
-  .sensor-header i {
-    font-size: 1.5rem;
-    color: var(--primary);
-  }
+        .sensor-header i {
+            font-size: 1.5rem;
+            color: var(--primary);
+        }
 
-  .sensor-value {
-    font-size: 2rem;
-    font-weight: bold;
-    color: #333;
-    margin: 0.5rem 0;
-  }
+        .sensor-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+            margin: 0.5rem 0;
+        }
 
-  .sensor-status {
-    color: #666;
-    font-size: 0.9rem;
-  }
+        .sensor-status {
+            color: #666;
+            font-size: 0.9rem;
+        }
 
-  /* Prediction Section */
-  .prediction-section {
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
+        /* Prediction Section */
+        .prediction-section {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
 
-  .prediction-card {
-    margin-top: 1.5rem;
-  }
+        .prediction-card {
+            margin-top: 1.5rem;
+        }
 
-  .prediction-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1.5rem;
-  }
+        .prediction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
 
-  .prediction-indicator {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
+        .prediction-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
 
-  .indicator-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background-color: #666;
-  }
+        .indicator-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: #666;
+        }
 
-  .probability-meter {
-    width: 100%;
-    height: 20px;
-    background-color: #e9ecef;
-    border-radius: 10px;
-    margin: 1.5rem 0;
-    position: relative;
-    overflow: hidden;
-  }
+        .probability-meter {
+            width: 100%;
+            height: 20px;
+            background-color: #e9ecef;
+            border-radius: 10px;
+            margin: 1.5rem 0;
+            position: relative;
+            overflow: hidden;
+        }
 
-  .meter-fill {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 0%;
-    background-color: var(--primary);
-    transition: width 0.3s ease;
-  }
+        .meter-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background-color: var(--primary);
+            transition: width 0.3s ease;
+        }
 
-  .meter-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: #fff;
-    font-weight: bold;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-  }
+        .meter-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
 
-  .prediction-actions {
-    display: flex;
+        .prediction-actions {
+            display: flex;
             flex-direction: column;
             gap: 10px;
             margin-top: 20px;
@@ -450,200 +325,200 @@
 
         .btn i {
             margin-right: 8px;
-  }
+        }
 
-  /* History Section */
-  .history-section {
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
+        /* History Section */
+        .history-section {
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
 
-  .chart-container {
-    margin: 1.5rem 0;
-    height: 300px;
-  }
+        .chart-container {
+            margin: 1.5rem 0;
+            height: 300px;
+        }
 
-  .history-controls {
-    display: flex;
-    justify-content: flex-end;
-  }
+        .history-controls {
+            display: flex;
+            justify-content: flex-end;
+        }
 
-  #time-range {
-    padding: 0.5rem 1rem;
-    border-radius: 5px;
-    border: 1px solid #ddd;
-    background-color: #fff;
-  }
+        #time-range {
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+        }
 
-  /* Status Colors */
-  .status-normal {
-    color: #28a745;
-  }
+        /* Status Colors */
+        .status-normal {
+            color: #28a745;
+        }
 
-  .status-warning {
-    color: #ffc107;
-  }
+        .status-warning {
+            color: #ffc107;
+        }
 
-  .status-danger {
-    color: #dc3545;
-  }
+        .status-danger {
+            color: #dc3545;
+        }
 
-  .indicator-normal {
-    background-color: #28a745;
-  }
+        .indicator-normal {
+            background-color: #28a745;
+        }
 
-  .indicator-warning {
-    background-color: #ffc107;
-  }
+        .indicator-warning {
+            background-color: #ffc107;
+        }
 
-  .indicator-danger {
-    background-color: #dc3545;
-  }
+        .indicator-danger {
+            background-color: #dc3545;
+        }
 
-  /* Footer Styles */
-  .site-footer {
-    background-color: #1a1a2e;
-    color: #fff;
-    padding: 4rem 0 2rem;
-    margin-top: 4rem;
-  }
+        /* Footer Styles */
+        .site-footer {
+            background-color: #1a1a2e;
+            color: #fff;
+            padding: 4rem 0 2rem;
+            margin-top: 4rem;
+        }
 
-  .footer-content {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 2rem;
-    margin-bottom: 2rem;
-  }
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
 
-  .footer-section h4 {
-    color: #fff;
-    margin-bottom: 1.5rem;
-    font-size: 1.2rem;
-  }
+        .footer-section h4 {
+            color: #fff;
+            margin-bottom: 1.5rem;
+            font-size: 1.2rem;
+        }
 
-  .footer-section p {
-    color: #b4b7c9;
-    line-height: 1.6;
-    margin-bottom: 1.5rem;
-  }
+        .footer-section p {
+            color: #b4b7c9;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
 
-  .footer-links {
-    list-style: none;
-    padding: 0;
-  }
+        .footer-links {
+            list-style: none;
+            padding: 0;
+        }
 
-  .footer-links li {
-    margin-bottom: 1rem;
-  }
+        .footer-links li {
+            margin-bottom: 1rem;
+        }
 
-  .footer-links a {
-    color: #b4b7c9;
-    text-decoration: none;
-    transition: color 0.3s;
-  }
+        .footer-links a {
+            color: #b4b7c9;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
 
-  .footer-links a:hover {
-    color: #fff;
-  }
+        .footer-links a:hover {
+            color: #fff;
+        }
 
-  .footer-links i {
-    margin-right: 0.5rem;
-    color: var(--primary);
-  }
+        .footer-links i {
+            margin-right: 0.5rem;
+            color: var(--primary);
+        }
 
-  .social-links {
-    display: flex;
-    gap: 1rem;
-  }
+        .social-links {
+            display: flex;
+            gap: 1rem;
+        }
 
-  .social-link {
-    color: #b4b7c9;
-    font-size: 1.2rem;
-    transition: color 0.3s;
-  }
+        .social-link {
+            color: #b4b7c9;
+            font-size: 1.2rem;
+            transition: color 0.3s;
+        }
 
-  .social-link:hover {
-    color: #fff;
-  }
+        .social-link:hover {
+            color: #fff;
+        }
 
-  .footer-bottom {
-    text-align: center;
-    padding-top: 2rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-  }
+        .footer-bottom {
+            text-align: center;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
 
-  .footer-bottom p {
-    color: #b4b7c9;
-    margin: 0;
-  }
+        .footer-bottom p {
+            color: #b4b7c9;
+            margin: 0;
+        }
 
-  .risk-levels {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin: 20px 0;
-  }
+        .risk-levels {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin: 20px 0;
+        }
 
-  .risk-level {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    border-radius: 5px;
-    opacity: 0.5;
-    transition: all 0.3s ease;
-  }
+        .risk-level {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            opacity: 0.5;
+            transition: all 0.3s ease;
+        }
 
-  .risk-level.active {
-    opacity: 1;
-    transform: scale(1.02);
-  }
+        .risk-level.active {
+            opacity: 1;
+            transform: scale(1.02);
+        }
 
-  .risk-level i {
-    font-size: 1.2rem;
-  }
+        .risk-level i {
+            font-size: 1.2rem;
+        }
 
-  .risk-level.critical {
-    background-color: rgba(220, 53, 69, 0.1);
-    color: #dc3545;
-  }
+        .risk-level.critical {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: #dc3545;
+        }
 
-  .risk-level.high {
-    background-color: rgba(255, 193, 7, 0.1);
-    color: #ffc107;
-  }
+        .risk-level.high {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: #ffc107;
+        }
 
-  .risk-level.moderate {
-    background-color: rgba(23, 162, 184, 0.1);
-    color: #17a2b8;
-  }
+        .risk-level.moderate {
+            background-color: rgba(23, 162, 184, 0.1);
+            color: #17a2b8;
+        }
 
-  .risk-level.low {
-    background-color: rgba(40, 167, 69, 0.1);
-    color: #28a745;
-  }
+        .risk-level.low {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: #28a745;
+        }
 
-  .risk-level.critical.active {
-    background-color: rgba(220, 53, 69, 0.2);
-    box-shadow: 0 0 10px rgba(220, 53, 69, 0.3);
-  }
+        .risk-level.critical.active {
+            background-color: rgba(220, 53, 69, 0.2);
+            box-shadow: 0 0 10px rgba(220, 53, 69, 0.3);
+        }
 
-  .risk-level.high.active {
-    background-color: rgba(255, 193, 7, 0.2);
-    box-shadow: 0 0 10px rgba(255, 193, 7, 0.3);
-  }
+        .risk-level.high.active {
+            background-color: rgba(255, 193, 7, 0.2);
+            box-shadow: 0 0 10px rgba(255, 193, 7, 0.3);
+        }
 
-  .risk-level.moderate.active {
-    background-color: rgba(23, 162, 184, 0.2);
-    box-shadow: 0 0 10px rgba(23, 162, 184, 0.3);
-  }
+        .risk-level.moderate.active {
+            background-color: rgba(23, 162, 184, 0.2);
+            box-shadow: 0 0 10px rgba(23, 162, 184, 0.3);
+        }
 
-  .risk-level.low.active {
-    background-color: rgba(40, 167, 69, 0.2);
-    box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
-  }
+        .risk-level.low.active {
+            background-color: rgba(40, 167, 69, 0.2);
+            box-shadow: 0 0 10px rgba(40, 167, 69, 0.3);
+        }
     </style>
 
     <script>
@@ -774,94 +649,94 @@
         }
 
         // Initialize the chart
-  const ctx = document.getElementById('history-chart').getContext('2d');
-  const historyChart = new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: [],
-      datasets: [
-        {
-          label: 'GSR',
-          data: [],
-          borderColor: 'rgb(255, 99, 132)',
+        const ctx = document.getElementById('history-chart').getContext('2d');
+        const historyChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'GSR',
+                        data: [],
+                        borderColor: 'rgb(255, 99, 132)',
                         tension: 0.1,
                         yAxisID: 'y'
-        },
-        {
-          label: 'Temperature',
-          data: [],
+                    },
+                    {
+                        label: 'Temperature',
+                        data: [],
                         borderColor: 'rgb(54, 162, 235)',
                         tension: 0.1,
                         yAxisID: 'y1'
-        },
-        {
-          label: 'SpO2',
-          data: [],
-          borderColor: 'rgb(75, 192, 192)',
+                    },
+                    {
+                        label: 'SpO2',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
                         tension: 0.1,
                         yAxisID: 'y2'
-        },
-        {
-          label: 'Crisis Probability',
-          data: [],
+                    },
+                    {
+                        label: 'Crisis Probability',
+                        data: [],
                         borderColor: 'rgb(255, 159, 64)',
                         tension: 0.1,
                         yAxisID: 'y3'
-        }
-      ]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      scales: {
-        y: {
-          type: 'linear',
-          display: true,
-          position: 'left',
-          title: {
-            display: true,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        type: 'linear',
+                        display: true,
+                        position: 'left',
+                        title: {
+                            display: true,
                             text: 'GSR'
                         }
-        },
-        y1: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          title: {
-            display: true,
+                    },
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
                             text: 'Temperature'
-          },
-          grid: {
-            drawOnChartArea: false
-          }
-        },
-        y2: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          title: {
-            display: true,
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    },
+                    y2: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
                             text: 'SpO2'
-          },
-          grid: {
-            drawOnChartArea: false
-          }
-        },
-        y3: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          title: {
-            display: true,
-            text: 'Crisis Probability'
-          },
-          grid: {
-            drawOnChartArea: false
-          }
-        }
-      }
-    }
-  });
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    },
+                    y3: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
+                        title: {
+                            display: true,
+                            text: 'Crisis Probability'
+                        },
+                        grid: {
+                            drawOnChartArea: false
+                        }
+                    }
+                }
+            }
+        });
 
         // Function to update the chart with new data
         function updateHistoryChart(data) {
@@ -885,118 +760,129 @@
             historyChart.update('none'); // Use 'none' to prevent animation for real-time updates
         }
 
-  // Function to update sensor values and status
-  function updateSensorValues(data) {
-    console.log('Updating sensor values:', data);
-    
-    // Update sensor values
-    document.getElementById('gsr-value').textContent = data.gsr.toFixed(2) + ' µS';
-    document.getElementById('temp-value').textContent = data.temperature.toFixed(1) + '°C';
-    document.getElementById('spo2-value').textContent = data.spo2.toFixed(1) + '%';
+        // Function to update sensor values and status
+        function updateSensorValues(data) {
+            console.log('Updating sensor values:', data);
+            
+            // Update sensor values
+            document.getElementById('gsr-value').textContent = data.gsr.toFixed(2) + ' µS';
+            document.getElementById('temp-value').textContent = data.temperature.toFixed(1) + '°C';
+            document.getElementById('spo2-value').textContent = data.spo2.toFixed(1) + '%';
 
-    // Update status indicators with risk levels
-    updateSensorStatus('gsr', data.gsr, 0.5, 5.0);
-    updateSensorStatus('temp', data.temperature, 35.0, 39.0);
-    updateSensorStatus('spo2', data.spo2, 85, 100);
-  }
-
-  function updateSensorStatus(sensor, value, min, max) {
-    const statusElement = document.getElementById(`${sensor}-status`);
-    if (!statusElement) {
-        console.error(`Status element not found for sensor: ${sensor}`);
-        return;
-    }
-
-    if (sensor === 'gsr') {
-        if (value > 4.5) {
-            statusElement.className = 'sensor-status status-danger';
-            statusElement.textContent = 'Critical';
-        } else if (value > 3.5) {
-            statusElement.className = 'sensor-status status-warning';
-            statusElement.textContent = 'High';
-        } else if (value > 2.0) {
-            statusElement.className = 'sensor-status status-normal';
-            statusElement.textContent = 'Normal';
-        } else {
-            statusElement.className = 'sensor-status status-warning';
-            statusElement.textContent = 'Low';
+            // Update status indicators with risk levels
+            updateSensorStatus('gsr', data.gsr, 0.5, 5.0);
+            updateSensorStatus('temp', data.temperature, 35.0, 39.0);
+            updateSensorStatus('spo2', data.spo2, 85, 100);
         }
-    } else if (sensor === 'temp') {
-        if (value > 38.5) {
-            statusElement.className = 'sensor-status status-danger';
-            statusElement.textContent = 'Critical';
-        } else if (value > 37.5 || value < 36.0) {
-            statusElement.className = 'sensor-status status-warning';
-            statusElement.textContent = 'High';
-        } else {
-            statusElement.className = 'sensor-status status-normal';
-            statusElement.textContent = 'Normal';
-        }
-    } else if (sensor === 'spo2') {
-        if (value < 90) {
-            statusElement.className = 'sensor-status status-danger';
-            statusElement.textContent = 'Critical';
-        } else if (value < 95) {
-            statusElement.className = 'sensor-status status-warning';
-            statusElement.textContent = 'Low';
-        } else {
-            statusElement.className = 'sensor-status status-normal';
-            statusElement.textContent = 'Normal';
-        }
-    }
-  }
 
-  // Update crisis prediction
-  function updatePrediction(probability) {
-    const indicator = document.getElementById('crisis-indicator');
-    const dot = indicator.querySelector('.indicator-dot');
-    const text = indicator.querySelector('.indicator-text');
-    const fill = document.getElementById('probability-fill');
-    const probText = document.getElementById('probability-text');
-    
-    // Ensure probability is a valid number
-    probability = parseFloat(probability) || 0;
-    
-    // Update probability meter
-    const percentage = Math.min(Math.max(probability * 100, 0), 100);
-    fill.style.width = `${percentage}%`;
-    probText.textContent = `${percentage.toFixed(1)}%`;
-    
-    // Update indicator
-    if (probability > 0.7) {
-      dot.className = 'indicator-dot indicator-danger';
-      text.textContent = 'High Risk';
-      fill.style.backgroundColor = '#dc3545';
-    } else if (probability > 0.4) {
-      dot.className = 'indicator-dot indicator-warning';
-      text.textContent = 'Moderate Risk';
-      fill.style.backgroundColor = '#ffc107';
-    } else {
-      dot.className = 'indicator-dot indicator-normal';
-      text.textContent = 'Low Risk';
-      fill.style.backgroundColor = '#28a745';
-    }
-  }
+        function updateSensorStatus(sensor, value, min, max) {
+            const statusElement = document.getElementById(`${sensor}-status`);
+            if (!statusElement) {
+                console.error(`Status element not found for sensor: ${sensor}`);
+                return;
+            }
+
+            if (sensor === 'gsr') {
+                if (value > 4.5) {
+                    statusElement.className = 'sensor-status status-danger';
+                    statusElement.textContent = 'Critical';
+                } else if (value > 3.5) {
+                    statusElement.className = 'sensor-status status-warning';
+                    statusElement.textContent = 'High';
+                } else if (value > 2.0) {
+                    statusElement.className = 'sensor-status status-normal';
+                    statusElement.textContent = 'Normal';
+                } else {
+                    statusElement.className = 'sensor-status status-warning';
+                    statusElement.textContent = 'Low';
+                }
+            } else if (sensor === 'temp') {
+                if (value > 38.5) {
+                    statusElement.className = 'sensor-status status-danger';
+                    statusElement.textContent = 'Critical';
+                } else if (value > 37.5 || value < 36.0) {
+                    statusElement.className = 'sensor-status status-warning';
+                    statusElement.textContent = 'High';
+                } else {
+                    statusElement.className = 'sensor-status status-normal';
+                    statusElement.textContent = 'Normal';
+                }
+            } else if (sensor === 'spo2') {
+                if (value < 90) {
+                    statusElement.className = 'sensor-status status-danger';
+                    statusElement.textContent = 'Critical';
+                } else if (value < 95) {
+                    statusElement.className = 'sensor-status status-warning';
+                    statusElement.textContent = 'Low';
+                } else {
+                    statusElement.className = 'sensor-status status-normal';
+                    statusElement.textContent = 'Normal';
+                }
+            }
+        }
+
+        // Update crisis prediction
+        function updatePrediction(probability) {
+            const indicator = document.getElementById('crisis-indicator');
+            const dot = indicator.querySelector('.indicator-dot');
+            const text = indicator.querySelector('.indicator-text');
+            const fill = document.getElementById('probability-fill');
+            const probText = document.getElementById('probability-text');
+            
+            // Ensure probability is a valid number
+            probability = parseFloat(probability) || 0;
+            
+            // Update probability meter
+            const percentage = Math.min(Math.max(probability * 100, 0), 100);
+            fill.style.width = `${percentage}%`;
+            probText.textContent = `${percentage.toFixed(1)}%`;
+            
+            // Update indicator
+            if (probability > 0.7) {
+                dot.className = 'indicator-dot indicator-danger';
+                text.textContent = 'High Risk';
+                fill.style.backgroundColor = '#dc3545';
+            } else if (probability > 0.4) {
+                dot.className = 'indicator-dot indicator-warning';
+                text.textContent = 'Moderate Risk';
+                fill.style.backgroundColor = '#ffc107';
+            } else {
+                dot.className = 'indicator-dot indicator-normal';
+                text.textContent = 'Low Risk';
+                fill.style.backgroundColor = '#28a745';
+            }
+        }
 
         // Initialize with default values
         updatePrediction(0);
 
-        // Add JavaScript for dropdown toggle
-        document.addEventListener('DOMContentLoaded', function() {
-            const dropdownToggle = document.querySelector('.dropdown-toggle');
-            const dropdownMenu = document.querySelector('.dropdown-menu');
+        function initializeKnowledgeLibraryDropdown() {
+            const dropdownToggle = document.querySelector('#userDropdown'); // More specific for the user dropdown
+            // Ensure we are targeting the correct menu related to this toggle
+            const dropdownMenu = dropdownToggle ? dropdownToggle.closest('.dropdown').querySelector('.dropdown-menu') : null;
 
             if (dropdownToggle && dropdownMenu) {
-                dropdownToggle.addEventListener('click', function() {
-                    dropdownMenu.classList.toggle('show');
+            dropdownToggle.addEventListener('click', function(event) {
+                event.stopPropagation(); // Prevent click from bubbling up to document immediately
+                // Close other dropdowns if any were open (good practice if multiple dropdowns exist)
+                document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+                if (menu !== dropdownMenu) {
+                    menu.classList.remove('show');
+                }
                 });
-
-                // Close dropdown when clicking outside
-                document.addEventListener('click', function(event) {
-                    if (!dropdownToggle.contains(event.target) && !dropdownMenu.contains(event.target)) {
-                        dropdownMenu.classList.remove('show');
-                    }
-                });
+                dropdownMenu.classList.toggle('show');
+            });
+            }
+        }
+        
+        // General click listener to close dropdowns when clicking outside
+        document.addEventListener('click', function(event) {
+            const openDropdownMenu = document.querySelector('.dropdown-menu.show');
+            if (openDropdownMenu) {
+            const dropdownToggle = openDropdownMenu.closest('.dropdown').querySelector('.dropdown-toggle');
+            if (!dropdownToggle.contains(event.target) && !openDropdownMenu.contains(event.target)) {
+                openDropdownMenu.classList.remove('show');
+            }
             }
         });
 
@@ -1004,7 +890,7 @@
         function loadHistoricalData() {
             const timeRange = document.getElementById('time-range').value;
             fetch(`/api/sensor-readings?time_range=${timeRange}`)
-      .then(response => response.json())
+                .then(response => response.json())
                 .then(readings => {
                     // Clear existing data
                     historyChart.data.labels = [];
@@ -1015,7 +901,7 @@
                         const date = new Date(reading.timestamp);
                         const time = `${date.getHours()}:${date.getMinutes()}`;
                         
-        historyChart.data.labels.push(time);
+                        historyChart.data.labels.push(time);
                         historyChart.data.datasets[0].data.push(reading.gsr);
                         historyChart.data.datasets[1].data.push(reading.temperature);
                         historyChart.data.datasets[2].data.push(reading.spo2);
@@ -1031,8 +917,17 @@
         document.getElementById('time-range').addEventListener('change', loadHistoricalData);
 
         // Load initial historical data
-        document.addEventListener('DOMContentLoaded', loadHistoricalData);
-</script> 
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => {
+                initializeKnowledgeLibraryDropdown();
+                loadHistoricalData();
+            });
+        } else {
+            // DOMContentLoaded has already fired
+            initializeKnowledgeLibraryDropdown();
+            loadHistoricalData();
+        }
+    </script> 
 </div>
   </div>
   

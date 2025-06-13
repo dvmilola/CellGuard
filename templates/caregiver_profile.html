@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - CellGuard{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <div class="page-header">
+        <h1>My Profile</h1>
+        <p>Manage your personal information and account settings.</p>
+    </div>
+
+    <div class="profile-form-container card">
+        <form method="POST" action="{{ url_for('caregiver_profile') }}">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="name">Full Name</label>
+                        <input type="text" id="name" name="name" class="form-control" value="{{ user.name or '' }}" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <input type="email" id="email" name="email" class="form-control" value="{{ user.email or '' }}" required>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <input type="tel" id="phone" name="phone" class="form-control" value="{{ user.phone or '' }}">
+                    </div>
+                </div>
+            </div>
+            
+            <hr class="my-4">
+
+            <h4>Change Password</h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="new_password">New Password</label>
+                        <input type="password" id="new_password" name="new_password" class="form-control" placeholder="Leave blank to keep current password">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="confirm_password">Confirm New Password</label>
+                        <input type="password" id="confirm_password" name="confirm_password" class="form-control">
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-end mt-4">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .profile-page {
+        max-width: 900px;
+        margin: 2rem auto;
+    }
+    .page-header h1 {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 700;
+    }
+    .profile-form-container {
+        padding: 2.5rem;
+        background-color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 24px rgba(44, 62, 80, 0.08);
+    }
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    .form-control {
+        padding: 0.85rem 1rem;
+        font-size: 1rem;
+        border-radius: 8px;
+    }
+    .form-control:focus {
+      border-color: #86b7fe;
+      outline: 0;
+      box-shadow: 0 0 0 0.25rem rgba(13,110,253,.25);
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add password confirmation validation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(event) {
+        const newPassword = document.getElementById('new_password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        if (newPassword && newPassword !== confirmPassword) {
+            alert('New passwords do not match.');
+            event.preventDefault(); // Stop form submission
+        }
+    });
+</script>
+{% endblock %} 

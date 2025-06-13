@@ -10,42 +10,7 @@
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body>
-  <nav>
-    <div class="container nav-container">
-      <a href="/" class="logo">
-        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
-        CellGuard
-      </a>
-      
-      <div class="nav-links">
-        <a href="/" class="nav-link">Home</a>
-        <a href="/predictions" class="nav-link">Crisis Prediction</a>
-        <a href="/medication" class="nav-link">Medication</a>
-        <a href="/symptom-tracker" class="nav-link active">Symptom Tracker</a>
-        <a href="/knowledge-library" class="nav-link">Knowledge Library</a>
-      </div>
-      
-      <div class="auth-buttons">
-        {% if current_user.is_authenticated %}
-            <div class="dropdown">
-                <button class="btn btn-outline dropdown-toggle" type="button" id="userDropdown" data-bs-toggle="dropdown">
-                    <i class="fas fa-user-circle"></i>
-                    {{ current_user.name }}
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item" href="/profile">Profile</a></li>
-                    <li><a class="dropdown-item" href="/settings">Settings</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="/logout">Logout</a></li>
-                </ul>
-            </div>
-        {% else %}
-            <a href="/login" class="btn btn-outline">Log In</a>
-            <a href="/signup" class="btn btn-primary">Sign Up</a>
-        {% endif %}
-      </div>
-    </div>
-  </nav>
+  {% include 'patient_nav.html' %}
 
   <main class="symptom-tracker-page">
     <div class="container">
@@ -255,6 +220,506 @@
     </div>
   </footer>
 
+  <style>
+    /* Navigation Styles */
+    nav {
+      background-color: white;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      padding: 1rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .nav-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      font-weight: 700;
+      font-size: 1.5rem;
+      color: var(--primary);
+      text-decoration: none;
+    }
+
+    .logo-icon {
+      margin-right: 0.5rem;
+      font-size: 1.8rem;
+      color: var(--primary);
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+    }
+
+    .nav-link {
+      text-decoration: none;
+      color: var(--text-dark);
+      font-weight: 500;
+      transition: color 0.2s;
+      padding: 0.5rem 0;
+      position: relative;
+    }
+
+    .nav-link.active {
+      color: var(--primary);
+    }
+
+    .nav-link.active::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background-color: var(--primary);
+      border-radius: 3px;
+    }
+
+    .nav-link:hover {
+      color: var(--primary);
+    }
+
+    .auth-buttons {
+      display: flex;
+      gap: 1rem;
+    }
+
+    /* Dropdown Styles */
+    .dropdown {
+      position: relative;
+    }
+
+    .dropdown-toggle {
+      background: none;
+      border: none;
+      color: var(--text-dark);
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: color 0.2s;
+    }
+
+    .dropdown-toggle:hover {
+      color: var(--text-dark);
+      opacity: 0.8;
+    }
+
+    .dropdown-toggle i {
+      font-size: 1.2rem;
+      color: var(--primary);
+    }
+
+    .dropdown-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      min-width: 200px;
+      background-color: white;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      padding: 0.5rem 0;
+      margin-top: 0.5rem;
+      display: none;
+    }
+
+    .dropdown-menu.show {
+      display: block;
+    }
+
+    .dropdown-item {
+      display: block;
+      padding: 0.75rem 1.25rem;
+      color: var(--text-dark);
+      text-decoration: none;
+      transition: background-color 0.2s;
+    }
+
+    .dropdown-item:hover {
+      background-color: #f8f9fa;
+      color: var(--primary);
+    }
+
+    .dropdown-divider {
+      height: 1px;
+      background-color: rgba(0, 0, 0, 0.1);
+      margin: 0.5rem 0;
+    }
+
+    /* Symptom Tracker Page Styles */
+    .symptom-tracker-page {
+      padding: 2rem 0;
+    }
+
+    .symptom-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    /* Daily Log Section */
+    .daily-log {
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 2rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .date-selector {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .date-selector button {
+      padding: 0.5rem;
+    }
+
+    #current-date {
+      font-weight: 500;
+      min-width: 200px;
+      text-align: center;
+    }
+
+    /* Pain Scale */
+    .pain-scale {
+      margin: 1rem 0;
+    }
+
+    .scale-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+      color: #666;
+      font-size: 0.875rem;
+    }
+
+    .scale-numbers {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.5rem;
+      color: #666;
+      font-size: 0.75rem;
+    }
+
+    .slider {
+      width: 100%;
+      height: 8px;
+      -webkit-appearance: none;
+      background: #e5e7eb;
+      border-radius: 4px;
+      outline: none;
+    }
+
+    .slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      background: var(--primary);
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    /* Symptom Checklist */
+    .symptom-checklist {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+    }
+
+    .checkmark {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid #ddd;
+      border-radius: 4px;
+      position: relative;
+    }
+
+    .checkbox-container input:checked + .checkmark {
+      background-color: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .checkbox-container input:checked + .checkmark::after {
+      content: '';
+      position: absolute;
+      left: 6px;
+      top: 2px;
+      width: 5px;
+      height: 10px;
+      border: solid white;
+      border-width: 0 2px 2px 0;
+      transform: rotate(45deg);
+    }
+
+    /* Symptom History Section */
+    .symptom-history {
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 2rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .chart-container {
+      margin: 2rem 0;
+      height: 300px;
+    }
+
+    .symptom-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    /* Recent Symptoms Section */
+    .recent-symptoms {
+      background-color: #fff;
+      border-radius: 10px;
+      padding: 2rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .symptom-list {
+      margin-top: 1.5rem;
+    }
+
+    .symptom-card {
+      border: 1px solid #eee;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .symptom-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .date {
+      font-weight: 500;
+    }
+
+    .pain-level {
+      color: var(--primary);
+      font-weight: 500;
+    }
+
+    .symptoms {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .symptom-tag {
+      background-color: #f0f9ff;
+      color: var(--primary);
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.875rem;
+    }
+
+    .notes {
+      color: #666;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .section-header {
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .date-selector {
+        width: 100%;
+        justify-content: center;
+      }
+
+      .symptom-checklist {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Footer Styles */
+    .site-footer {
+      background-color: #1a1a2e;
+      color: #fff;
+      padding: 4rem 0 2rem;
+      margin-top: 4rem;
+    }
+
+    .footer-content {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2rem;
+      margin-bottom: 3rem;
+    }
+
+    .footer-section h4 {
+      color: #fff;
+      font-size: 1.2rem;
+      margin-bottom: 1.5rem;
+      font-weight: 600;
+    }
+
+    .footer-section p {
+      color: #a0a0a0;
+      line-height: 1.6;
+      margin-bottom: 1.5rem;
+    }
+
+    .social-links {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .social-link {
+      color: #fff;
+      font-size: 1.2rem;
+      transition: color 0.3s ease;
+    }
+
+    .social-link:hover {
+      color: #4a90e2;
+    }
+
+    .footer-links {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .footer-links li {
+      margin-bottom: 0.8rem;
+    }
+
+    .footer-links a,
+    .footer-links li {
+      color: #a0a0a0;
+      text-decoration: none;
+      transition: color 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .footer-links a:hover {
+      color: #4a90e2;
+    }
+
+    .footer-bottom {
+      text-align: center;
+      padding-top: 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .footer-bottom p {
+      color: #a0a0a0;
+      margin: 0;
+    }
+
+    @media (max-width: 768px) {
+      .footer-content {
+        grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .social-links {
+        justify-content: center;
+      }
+
+      .footer-links li {
+        justify-content: center;
+      }
+    }
+
+    /* Dropdown specific styles - ensuring they are present for this page */
+    .nav-container .dropdown {
+      position: relative;
+    }
+
+    .nav-container .dropdown-menu {
+      position: absolute;
+      top: 100%; /* Position below the toggle button */
+      right: 0; /* Align to the right of the toggle button */
+      z-index: 1000; /* Ensure it's above other content */
+      display: none; /* Hidden by default */
+      min-width: 180px; /* Or your preferred width */
+      padding: 0.5rem 0;
+      margin-top: 0.5rem; /* Small margin from the toggle */
+      font-size: 1rem;
+      color: #212529;
+      text-align: left;
+      list-style: none;
+      background-color: #fff;
+      background-clip: padding-box;
+      border: 1px solid rgba(0,0,0,.15);
+      border-radius: 0.375rem; /* Bootstrap 5 default */
+      box-shadow: 0 0.5rem 1rem rgba(0,0,0,.175);
+    }
+
+    .nav-container .dropdown-menu.show {
+      display: block; /* Make it visible when .show class is added */
+    }
+
+    .nav-container .dropdown-item {
+      display: block;
+      width: 100%;
+      padding: 0.5rem 1rem; /* Adjust padding as needed */
+      clear: both;
+      font-weight: 400;
+      color: #212529;
+      text-align: inherit;
+      text-decoration: none; /* Remove underline from links */
+      white-space: nowrap;
+      background-color: transparent;
+      border: 0;
+    }
+
+    .nav-container .dropdown-item:hover,
+    .nav-container .dropdown-item:focus {
+      color: #1e2125;
+      background-color: #e9ecef; /* Hover background */
+    }
+
+    .nav-container .dropdown-divider {
+      height: 0;
+      margin: 0.5rem 0;
+      overflow: hidden;
+      border-top: 1px solid rgba(0,0,0,.15);
+    }
+    /* End of Dropdown specific styles */
+  </style>
+
   <script>
     // Dropdown functionality
     document.addEventListener('DOMContentLoaded', function() {
@@ -461,449 +926,45 @@
     document.getElementById('history-range').addEventListener('change', function(e) {
       loadSymptomHistory();
     });
+
+    function initializeKnowledgeLibraryDropdown() {
+      const dropdownToggle = document.querySelector('#userDropdown'); // More specific for the user dropdown
+      // Ensure we are targeting the correct menu related to this toggle
+      const dropdownMenu = dropdownToggle ? dropdownToggle.closest('.dropdown').querySelector('.dropdown-menu') : null;
+
+      if (dropdownToggle && dropdownMenu) {
+        dropdownToggle.addEventListener('click', function(event) {
+          event.stopPropagation(); // Prevent click from bubbling up to document immediately
+          // Close other dropdowns if any were open (good practice if multiple dropdowns exist)
+          document.querySelectorAll('.dropdown-menu.show').forEach(menu => {
+            if (menu !== dropdownMenu) {
+              menu.classList.remove('show');
+            }
+          });
+          dropdownMenu.classList.toggle('show');
+        });
+      }
+    }
+    
+    // General click listener to close dropdowns when clicking outside
+    document.addEventListener('click', function(event) {
+      const openDropdownMenu = document.querySelector('.dropdown-menu.show');
+      if (openDropdownMenu) {
+        const dropdownToggle = openDropdownMenu.closest('.dropdown').querySelector('.dropdown-toggle');
+        if (!dropdownToggle.contains(event.target) && !openDropdownMenu.contains(event.target)) {
+          openDropdownMenu.classList.remove('show');
+        }
+      }
+    });
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        initializeKnowledgeLibraryDropdown();
+      });
+    } else {
+      // DOMContentLoaded has already fired
+      initializeKnowledgeLibraryDropdown();
+    }
   </script>
 </body>
-</html>
-
-<style>
-  /* Navigation Styles */
-  nav {
-    background-color: white;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    padding: 1rem 2rem;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-  }
-
-  .nav-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .logo {
-    display: flex;
-    align-items: center;
-    font-weight: 700;
-    font-size: 1.5rem;
-    color: var(--primary);
-    text-decoration: none;
-  }
-
-  .logo-icon {
-    margin-right: 0.5rem;
-    font-size: 1.8rem;
-    color: var(--primary);
-  }
-
-  .nav-links {
-    display: flex;
-    gap: 2rem;
-  }
-
-  .nav-link {
-    text-decoration: none;
-    color: var(--text-dark);
-    font-weight: 500;
-    transition: color 0.2s;
-    padding: 0.5rem 0;
-    position: relative;
-  }
-
-  .nav-link.active {
-    color: var(--primary);
-  }
-
-  .nav-link.active::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 3px;
-    background-color: var(--primary);
-    border-radius: 3px;
-  }
-
-  .nav-link:hover {
-    color: var(--primary);
-  }
-
-  .auth-buttons {
-    display: flex;
-    gap: 1rem;
-  }
-
-  /* Dropdown Styles */
-  .dropdown {
-    position: relative;
-  }
-
-  .dropdown-toggle {
-    background: none;
-    border: none;
-    color: var(--text-dark);
-    font-weight: 500;
-    padding: 0.5rem 1rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: color 0.2s;
-  }
-
-  .dropdown-toggle:hover {
-    color: var(--text-dark);
-    opacity: 0.8;
-  }
-
-  .dropdown-toggle i {
-    font-size: 1.2rem;
-    color: var(--primary);
-  }
-
-  .dropdown-menu {
-    position: absolute;
-    top: 100%;
-    right: 0;
-    min-width: 200px;
-    background-color: white;
-    border: 1px solid rgba(0, 0, 0, 0.1);
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 0.5rem 0;
-    margin-top: 0.5rem;
-    display: none;
-  }
-
-  .dropdown-menu.show {
-    display: block;
-  }
-
-  .dropdown-item {
-    display: block;
-    padding: 0.75rem 1.25rem;
-    color: var(--text-dark);
-    text-decoration: none;
-    transition: background-color 0.2s;
-  }
-
-  .dropdown-item:hover {
-    background-color: #f8f9fa;
-    color: var(--primary);
-  }
-
-  .dropdown-divider {
-    height: 1px;
-    background-color: rgba(0, 0, 0, 0.1);
-    margin: 0.5rem 0;
-  }
-
-  /* Symptom Tracker Page Styles */
-  .symptom-tracker-page {
-    padding: 2rem 0;
-  }
-
-  .symptom-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-
-  /* Daily Log Section */
-  .daily-log {
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-  }
-
-  .date-selector {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-  }
-
-  .date-selector button {
-    padding: 0.5rem;
-  }
-
-  #current-date {
-    font-weight: 500;
-    min-width: 200px;
-    text-align: center;
-  }
-
-  /* Pain Scale */
-  .pain-scale {
-    margin: 1rem 0;
-  }
-
-  .scale-labels {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-    color: #666;
-    font-size: 0.875rem;
-  }
-
-  .scale-numbers {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 0.5rem;
-    color: #666;
-    font-size: 0.75rem;
-  }
-
-  .slider {
-    width: 100%;
-    height: 8px;
-    -webkit-appearance: none;
-    background: #e5e7eb;
-    border-radius: 4px;
-    outline: none;
-  }
-
-  .slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
-    background: var(--primary);
-    border-radius: 50%;
-    cursor: pointer;
-  }
-
-  /* Symptom Checklist */
-  .symptom-checklist {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin: 1rem 0;
-  }
-
-  .checkbox-container {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-  }
-
-  .checkmark {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 2px solid #ddd;
-    border-radius: 4px;
-    position: relative;
-  }
-
-  .checkbox-container input:checked + .checkmark {
-    background-color: var(--primary);
-    border-color: var(--primary);
-  }
-
-  .checkbox-container input:checked + .checkmark::after {
-    content: '';
-    position: absolute;
-    left: 6px;
-    top: 2px;
-    width: 5px;
-    height: 10px;
-    border: solid white;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-  }
-
-  /* Symptom History Section */
-  .symptom-history {
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .chart-container {
-    margin: 2rem 0;
-    height: 300px;
-  }
-
-  .symptom-stats {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem;
-    margin-top: 2rem;
-  }
-
-  /* Recent Symptoms Section */
-  .recent-symptoms {
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 2rem;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  }
-
-  .symptom-list {
-    margin-top: 1.5rem;
-  }
-
-  .symptom-card {
-    border: 1px solid #eee;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .symptom-header {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 1rem;
-  }
-
-  .date {
-    font-weight: 500;
-  }
-
-  .pain-level {
-    color: var(--primary);
-    font-weight: 500;
-  }
-
-  .symptoms {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-  }
-
-  .symptom-tag {
-    background-color: #f0f9ff;
-    color: var(--primary);
-    padding: 0.25rem 0.75rem;
-    border-radius: 20px;
-    font-size: 0.875rem;
-  }
-
-  .notes {
-    color: #666;
-    margin: 0;
-    line-height: 1.5;
-  }
-
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .section-header {
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .date-selector {
-      width: 100%;
-      justify-content: center;
-    }
-
-    .symptom-checklist {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  /* Footer Styles */
-  .site-footer {
-    background-color: #1a1a2e;
-    color: #fff;
-    padding: 4rem 0 2rem;
-    margin-top: 4rem;
-  }
-
-  .footer-content {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 2rem;
-    margin-bottom: 3rem;
-  }
-
-  .footer-section h4 {
-    color: #fff;
-    font-size: 1.2rem;
-    margin-bottom: 1.5rem;
-    font-weight: 600;
-  }
-
-  .footer-section p {
-    color: #a0a0a0;
-    line-height: 1.6;
-    margin-bottom: 1.5rem;
-  }
-
-  .social-links {
-    display: flex;
-    gap: 1rem;
-  }
-
-  .social-link {
-    color: #fff;
-    font-size: 1.2rem;
-    transition: color 0.3s ease;
-  }
-
-  .social-link:hover {
-    color: #4a90e2;
-  }
-
-  .footer-links {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-
-  .footer-links li {
-    margin-bottom: 0.8rem;
-  }
-
-  .footer-links a,
-  .footer-links li {
-    color: #a0a0a0;
-    text-decoration: none;
-    transition: color 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .footer-links a:hover {
-    color: #4a90e2;
-  }
-
-  .footer-bottom {
-    text-align: center;
-    padding-top: 2rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-  }
-
-  .footer-bottom p {
-    color: #a0a0a0;
-    margin: 0;
-  }
-
-  @media (max-width: 768px) {
-    .footer-content {
-      grid-template-columns: 1fr;
-      text-align: center;
-    }
-
-    .social-links {
-      justify-content: center;
-    }
-
-    .footer-links li {
-      justify-content: center;
-    }
-  }
-</style> 
+</html> 

@@ -9,29 +9,7 @@
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body>
-  <nav>
-    <div class="container nav-container">
-      <div class="logo">
-        <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
-        CellGuard
-      </div>
-      <div class="nav-links">
-        <a href="/" class="nav-link">Home</a>
-        <a href="/predictions" class="nav-link">Crisis Prediction</a>
-        <a href="/medications" class="nav-link">Medication</a>
-        <a href="/tracker" class="nav-link">Symptom Tracker</a>
-        <a href="/library" class="nav-link">Knowledge Library</a>
-        <a href="/emergency" class="nav-link">Emergency Contacts</a>
-        <a href="/profile" class="nav-link">Profile</a>
-        <a href="/provider" class="nav-link">Healthcare Provider</a>
-        <a href="/settings" class="nav-link active">Settings</a>
-      </div>
-      <div class="auth-buttons">
-        <button class="btn btn-outline" id="login-btn">Log In</button>
-        <button class="btn btn-primary" id="signup-btn">Sign Up</button>
-      </div>
-    </div>
-  </nav>
+  {% include 'patient_nav.html' %}
   
   <main>
     <section>
