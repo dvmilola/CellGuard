@@ -8,6 +8,66 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  <style>
+    /* Custom Dropdown styles */
+    .dropdown {
+      position: relative;
+      display: inline-block;
+    }
+
+    .dropdown-toggle::after {
+        display: none; /* Hide default bootstrap arrow */
+    }
+
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      background-color: white;
+      min-width: 180px;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.1);
+      z-index: 101;
+      list-style: none;
+      padding: 0.5rem 0;
+      border-radius: 8px;
+      border: 1px solid #eee;
+      right: 0; /* Align to the right */
+    }
+
+    .dropdown-menu.show {
+      display: block;
+    }
+
+    .dropdown-item {
+      color: #333;
+      padding: 0.75rem 1.25rem;
+      text-decoration: none;
+      display: block;
+      font-size: 0.95rem;
+      clear: both;
+      font-weight: 500;
+      text-align: left;
+      white-space: nowrap;
+      background-color: transparent;
+      border: 0;
+    }
+    
+    .dropdown-item i {
+        margin-right: 0.75rem;
+        color: var(--text-light);
+    }
+
+    .dropdown-item:hover {
+      background-color: #f8f9fa;
+      color: var(--primary);
+    }
+    
+    .dropdown-divider {
+        height: 0;
+        margin: .5rem 0;
+        overflow: hidden;
+        border-top: 1px solid #e9ecef;
+    }
+  </style>
 </head>
 <body>
   <nav>
@@ -26,8 +86,23 @@
       </div>
       
       <div class="auth-buttons">
+        {% if current_user.is_authenticated %}
+        <div class="dropdown">
+            <button class="btn btn-outline dropdown-toggle" type="button" id="userDropdown">
+                <i class="fas fa-user-circle" style="margin-right: 8px;"></i>
+                {{ current_user.name }}
+            </button>
+            <ul class="dropdown-menu" id="userDropdownMenu">
+                <li><a class="dropdown-item" href="/profile"><i class="fas fa-user"></i> Profile</a></li>
+                <li><a class="dropdown-item" href="/settings"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="/logout"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+            </ul>
+        </div>
+        {% else %}
         <a href="/login" class="btn btn-outline">Log In</a>
         <a href="/signup" class="btn btn-primary">Sign Up</a>
+        {% endif %}
       </div>
     </div>
   </nav>
@@ -164,8 +239,27 @@
   </footer>
 
   <script>
-    // Remove the page switching code since we're using proper navigation
     document.addEventListener('DOMContentLoaded', function() {
+      // Dropdown toggle functionality
+      const userDropdown = document.getElementById('userDropdown');
+      if (userDropdown) {
+          const menu = document.getElementById('userDropdownMenu');
+          userDropdown.addEventListener('click', function(event) {
+              event.stopPropagation();
+              menu.classList.toggle('show');
+          });
+      }
+
+      // Close the dropdown if the user clicks outside of it
+      window.addEventListener('click', function(event) {
+          const menu = document.getElementById('userDropdownMenu');
+          if (menu && !event.target.matches('#userDropdown, #userDropdown *')) {
+              if (menu.classList.contains('show')) {
+                  menu.classList.remove('show');
+              }
+          }
+      });
+
       // Keep the smooth scroll functionality
       document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function (e) {
