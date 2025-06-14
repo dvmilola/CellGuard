@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e # Exit immediately if a command exits with a non-zero status.
 
-# Explicitly activate the correct python version using mise
-mise use python@3.11
+# Tell mise to install the required python version
+mise install
 
 # Upgrade pip and setuptools first
 python -m pip install --upgrade pip setuptools
