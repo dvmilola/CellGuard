@@ -1,6 +1,6 @@
 [build]
   command = "bash build.sh"
-  publish = "static"
+  publish = "."
   functions = "api"
 
 [build.environment]
