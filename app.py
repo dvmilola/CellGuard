@@ -45,7 +45,12 @@ from flask_mail import Mail, Message
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})  # Enable CORS for all routes with credentials
 
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///crisis_predictions.db')
+# Database path - use a writable path in /tmp on Netlify
+db_path = 'sqlite:///crisis_predictions.db'
+if os.environ.get('NETLIFY') == 'true':
+    db_path = 'sqlite:////tmp/crisis_predictions.db'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', db_path)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Change from 'None' to 'Lax'
