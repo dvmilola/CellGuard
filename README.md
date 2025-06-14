@@ -155,3 +155,31 @@ Model performance is evaluated using:
 ## Support
 
 For support, please contact [your contact information]
+
+## Deployment on Netlify
+
+1.  **Connect Your Git Repository:**
+    *   Log in to [Netlify](https://www.netlify.com/).
+    *   Click "Add new site" -> "Import an existing project".
+    *   Connect to your Git provider (GitHub, GitLab, etc.) and select your repository.
+
+2.  **Configure Build Settings:**
+    *   Netlify should automatically detect the `netlify.toml` file. The build command and publish directory will be pre-filled.
+    *   The `netlify.toml` file in this repository is configured to:
+        *   Run `bash build.sh` to install dependencies.
+        *   Use Python 3.11.
+        *   Serve your app as a serverless function.
+
+3.  **Set Environment Variables:**
+    *   In your site's settings on Netlify, go to "Site configuration" -> "Environment variables".
+    *   Add your configuration variables (the same ones from your `.env` file):
+        *   `SECRET_KEY`
+        *   `MAIL_SERVER`
+        *   `MAIL_PORT`
+        *   `MAIL_USE_TLS`
+        *   `MAIL_USERNAME`
+        *   `MAIL_PASSWORD`
+
+4.  **Deploy:**
+    *   Click "Deploy site". Netlify will start the build process. You can monitor the progress in the "Deploys" tab.
+    *   Once deployed, your application will be live at the URL provided by Netlify.
