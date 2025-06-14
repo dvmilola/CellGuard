@@ -1,6 +1,6 @@
 [build]
   command = "bash build.sh"
-  publish = "static"
+  publish = "."
 
 [functions]
   directory = "api"
@@ -11,4 +11,11 @@
 [[redirects]]
   from = "/*"
   to = "/.netlify/functions/index"
+  status = 200
+  force = true
+  conditions = {Role = ["!admin"]}
+
+[[redirects]]
+  from = "/static/*"
+  to = "/:splat"
   status = 200 
