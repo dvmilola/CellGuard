@@ -1,5 +1,5 @@
 [build]
-  command = "pip install --upgrade pip setuptools && pip install -r requirements.txt"
+  command = "python -m pip install --upgrade pip setuptools && python -m pip install -r requirements.txt"
   functions = "api/"
   publish = "static/"
 
