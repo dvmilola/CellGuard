@@ -3,5 +3,5 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
-# Install Python dependencies
-pip install -r requirements.txt 
+# The requirements file is now inside the 'api' directory.
+pip install -r api/requirements.txt 

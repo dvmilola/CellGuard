@@ -42,9 +42,11 @@ from flask_mail import Mail, Message
 
 
 # Configure the application
+# The app.py file is now inside the 'api' directory,
+# so the paths for templates and static folders are relative to it.
 app = Flask(__name__, 
-            template_folder='api/templates', 
-            static_folder='api/static', 
+            template_folder='templates', 
+            static_folder='static', 
             static_url_path='/static')
 CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})  # Enable CORS for all routes with credentials
 
