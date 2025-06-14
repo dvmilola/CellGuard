@@ -42,7 +42,7 @@ from flask_mail import Mail, Message
 
 
 # Configure the application
-app = Flask(__name__, static_folder='static', static_url_path='')
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})  # Enable CORS for all routes with credentials
 
 # Database path - use a writable path in /tmp on Netlify
