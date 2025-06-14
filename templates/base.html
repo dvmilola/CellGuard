@@ -23,7 +23,7 @@
 <body>
     <nav>
         <div class="container nav-container">
-          <a href="/" class="logo">
+          <a href="{% if current_user.is_authenticated and current_user.user_type == 'caregiver' %}/caregiver{% else %}/{% endif %}" class="logo">
             <span class="logo-icon"><i class="fas fa-shield-virus"></i></span>
             CellGuard
           </a>

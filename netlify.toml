@@ -1,0 +1,14 @@
+[build]
+  command = "pip install -r requirements.txt"
+  functions = "api/"
+  publish = "static/"
+
+[dev]
+  command = "pip install -r requirements.txt && python app.py"
+  targetPort = 5001
+  publish = "static"
+
+[[redirects]]
+  from = "/*"
+  to = "/api/index"
+  status = 200 

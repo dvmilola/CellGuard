@@ -42,6 +42,7 @@
             </div>
             
             <form id="login-form" class="auth-form" method="POST" action="/api/login">
+              <div id="error-message" class="error-banner" style="display: none;"></div>
               <div class="form-group">
                 <label for="email">Email Address</label>
                 <input type="email" id="email" name="email" required>
@@ -123,6 +124,7 @@
       
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
+      const errorBanner = document.getElementById('error-message');
       
       fetch('/api/login', {
         method: 'POST',
@@ -134,9 +136,10 @@
           password: password
         })
       })
-      .then(response => response.json())
-      .then(data => {
-        if (data.message === 'Login successful') {
+      .then(response => response.json().then(data => ({ ok: response.ok, data })))
+      .then(({ ok, data }) => {
+        if (ok) {
+          errorBanner.style.display = 'none';
           // Redirect based on user type
           if (data.user_type === 'caregiver') {
             window.location.href = '/caregiver';
@@ -146,17 +149,28 @@
             window.location.href = '/predictions';
           }
         } else {
-          alert(data.error || 'Login failed. Please try again.');
+          errorBanner.textContent = data.message || 'Login failed. Please check your credentials.';
+          errorBanner.style.display = 'block';
         }
       })
       .catch(error => {
         console.error('Error:', error);
-        alert('An error occurred. Please try again.');
+        errorBanner.textContent = 'An unexpected error occurred. Please try again later.';
+        errorBanner.style.display = 'block';
       });
     });
   </script>
 
   <style>
+    .error-banner {
+        background-color: #f8d7da;
+        color: #721c24;
+        padding: 1rem;
+        border: 1px solid #f5c6cb;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
     /* Auth Page Styles */
     .auth-container {
       display: grid;

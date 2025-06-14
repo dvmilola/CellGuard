@@ -3,6 +3,8 @@ import requests
 import click
 from flask.cli import with_appcontext
 from dotenv import load_dotenv
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired
+import os
 
 # Load environment variables from .env file
 load_dotenv()
@@ -43,9 +45,9 @@ from flask_mail import Mail, Message
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})  # Enable CORS for all routes with credentials
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///crisis_predictions.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///crisis_predictions.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['SECRET_KEY'] = 'your-secret-key-here'  # Change this to a secure secret key in production
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-secret-key-here')
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'  # Change from 'None' to 'Lax'
 app.config['SESSION_COOKIE_SECURE'] = False  # Change to False for local development
 app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'  # Change from 'None' to 'Lax'
@@ -56,8 +58,8 @@ app.config['PERMANENT_SESSION_LIFETIME'] = 3600  # 1 hour
 # Email configuration
 app.config['MAIL_SERVER'] = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
 app.config['MAIL_PORT'] = int(os.environ.get('MAIL_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'True').lower() in ['true', 'on', '1']
-app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'False').lower() in ['true', 'on', '1']
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'False').lower() in ['true', 'on', '1']
+app.config['MAIL_USE_SSL'] = os.environ.get('MAIL_USE_SSL', 'True').lower() in ['true', 'on', '1']
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_DEFAULT_SENDER')
@@ -275,7 +277,7 @@ def signup_page():
     return render_template('signup.html')
 
 @app.route('/api/login', methods=['POST'])
-def login():
+def api_login():
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
@@ -283,12 +285,30 @@ def login():
     user = User.query.filter_by(email=email).first()
     
     if user and user.check_password(password):
-        login_user(user, remember=True)
-        session['user_id'] = user.id  # Explicitly set user_id in session
-        return jsonify({
-            'message': 'Login successful',
-            'user_type': user.user_type
-        })
+        if not user.email_verified:
+            return jsonify({
+                'success': False,
+                'message': 'Please verify your email before logging in.'
+            }), 401
+        
+        login_user(user)
+        
+        # Determine redirect URL based on user type
+        if user.user_type == 'patient':
+            return jsonify({
+                'message': 'Login successful',
+                'user_type': user.user_type
+            })
+        elif user.user_type == 'caregiver':
+            return jsonify({
+                'message': 'Login successful',
+                'user_type': user.user_type
+            })
+        else:
+            return jsonify({
+                'message': 'Login successful',
+                'user_type': user.user_type
+            })
     else:
         return jsonify({
             'error': 'Invalid email or password'
@@ -300,6 +320,43 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
+def generate_verification_token(email):
+    serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+    return serializer.dumps(email, salt='email-verification')
+
+def send_verification_email(user_email):
+    token = generate_verification_token(user_email)
+    verify_url = url_for('verify_email', token=token, _external=True)
+    subject = "Please verify your email"
+    html = render_template('verification_email.html', verify_url=verify_url)
+    msg = Message(subject, recipients=[user_email], html=html)
+    mail.send(msg)
+
+@app.route('/verify_email/<token>')
+def verify_email(token):
+    try:
+        serializer = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+        email = serializer.loads(token, salt='email-verification', max_age=3600)
+    except SignatureExpired:
+        flash('The verification link has expired.', 'danger')
+        return redirect(url_for('login_page'))
+    except Exception as e:
+        flash('The verification link is invalid.', 'danger')
+        return redirect(url_for('login_page'))
+
+    user = User.query.filter_by(email=email).first()
+    if user:
+        if user.email_verified:
+            flash('Account already verified. Please login.', 'success')
+        else:
+            user.email_verified = True
+            db.session.commit()
+            flash('Your account has been successfully verified! Please log in.', 'success')
+    else:
+        flash('User not found.', 'danger')
+
+    return redirect(url_for('login_page'))
+
 @app.route('/api/signup', methods=['POST'])
 def api_signup():
     data = request.get_json()
@@ -310,13 +367,27 @@ def api_signup():
     age = data.get('age')
     gender = data.get('gender')
     
-    # Check if user already exists
     existing_user = User.query.filter_by(email=email).first()
     if existing_user:
-        return jsonify({
-            'success': False,
-            'message': 'Email already registered'
-        }), 400
+        if not existing_user.email_verified:
+            # Resend verification email for unverified user
+            try:
+                send_verification_email(existing_user.email)
+                return jsonify({
+                    'success': False,
+                    'message': 'This email is already registered but not verified. A new verification link has been sent.'
+                }), 409
+            except Exception as e:
+                app.logger.error(f"Error resending verification for {email}: {e}")
+                return jsonify({
+                    'success': False,
+                    'message': 'Error resending verification email. Please contact support.'
+                }), 500
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Email already registered. Please log in.'
+            }), 409
     
     # Create new user
     new_user = User(name=name, email=email, user_type=user_type, age=age, gender=gender)
@@ -325,14 +396,15 @@ def api_signup():
     try:
         db.session.add(new_user)
         db.session.commit()
-        # Remove automatic login
+        send_verification_email(new_user.email)
         return jsonify({
             'success': True,
-            'message': 'Account created successfully. Please log in.',
+            'message': 'Account created successfully. Please check your email to verify your account.',
             'redirect_url': '/login'
         })
     except Exception as e:
         db.session.rollback()
+        app.logger.error(f"Error during signup for email {email}: {e}")
         return jsonify({
             'success': False,
             'message': 'Error creating account. Please try again.'
@@ -1761,7 +1833,8 @@ def confirm_link(token):
 # Make sure templates directory exists
 os.makedirs('templates', exist_ok=True)
 
+# This block will only run when the script is executed directly
 if __name__ == '__main__':
     print("\n[INFO] Starting Flask server with Socket.IO...")
     print("[INFO] Server will be available at http://localhost:5001")
-    socketio.run(app, host='0.0.0.0', port=5001, debug=True)
+    socketio.run(app, debug=True, host='0.0.0.0', port=5001)
