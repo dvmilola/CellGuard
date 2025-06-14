@@ -62,3 +62,14 @@ logs/
 catboost_info/
 migrations/
 IMG_*.heic
+
+# Environment
+.env
+venv/
+__pycache__/
+
+# Python version file
+.python-version
+
+# Database
+crisis_predictions.db
