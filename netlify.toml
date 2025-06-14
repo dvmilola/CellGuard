@@ -1,7 +1,9 @@
 [build]
   command = "bash build.sh"
-  publish = "."
-  functions = "api"
+  publish = "static"
+
+[functions]
+  directory = "api"
 
 [build.environment]
   PYTHON_VERSION = "3.11"
